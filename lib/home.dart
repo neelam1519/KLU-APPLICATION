@@ -86,7 +86,7 @@ class _HomeState extends State<Home> {
                           } else {
                             String? privilege=await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
 
-                            if(privilege=='FACULTY ADVISOR' || privilege=='ADMIN' || privilege=='YEAR COORDINATOR' || privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
+                            if(privilege=='FACULTY ADVISOR' || privilege=='HOD' || privilege=='YEAR COORDINATOR' || privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
                               Navigator.push(context, MaterialPageRoute(builder: (context) => LecturerLeaveFormsView(privilege: privilege,)));
 
                             }else if(privilege=='STUDENT'){

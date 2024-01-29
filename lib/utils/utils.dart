@@ -133,4 +133,29 @@ class Utils {
     return romanNumeralRegExp.hasMatch(input);
   }
 
+  void exceptions(Object e,String name){
+    if (e is FirebaseException) {
+      // Handle Firebase server-side errors
+      print(name);
+      print('Firebase server-side error:');
+      print('Code: ${e.code}');
+      print('Message: ${e.message}');
+    } else if (e is StateError) {
+      // Handle state-related errors
+      print(name);
+      print('StateError: $e');
+    } else if (e is ArgumentError) {
+      // Handle argument-related errors
+      print(name);
+      print('ArgumentError: $e');
+    } else if (e is RangeError) {
+      print(name);
+      // Handle range-related errors
+      print('RangeError: $e');
+    } else {
+      // Handle any other unexpected errors
+      print(name);
+      print('Unexpected error: $e');
+    }
+  }
 }

@@ -158,8 +158,8 @@ class MyHomePage extends StatelessWidget {
           SharedPreferences sharedPreferences=SharedPreferences();
           FirebaseService firebaseService=FirebaseService();
 
-          lecturerorstudent='STAFF';
-          utils.showToastMessage(lecturerorstudent, context);
+          //lecturerorstudent='STAFF';
+          //utils.showToastMessage(lecturerorstudent, context);
 
           if(lecturerorstudent=='STUDENT'){
             privilege='STUDENT';
@@ -223,9 +223,7 @@ class MyHomePage extends StatelessWidget {
             print('STAFF LOGGING IN');
             String name,staffID,branch,mobileNumber,yearCoordinatorStream,yearCoordinatorYear,facultyAdvisorStream,facultyAdvisorSection,facultyAdvisorYear,slot;
 
-            if(email=='hodcse@klu.ac.in'){
 
-            }
 
             Map<String,String> adminDetails={};
             Map<String,String> searchData={};
@@ -293,16 +291,41 @@ class MyHomePage extends StatelessWidget {
                 'SLOT':slot});
 
             }else if(adminDetails.isNotEmpty){
-              print('YEAR COORDINATOR');
-              privilege='YEAR COORDINATOR';
+              privilege = adminDetails['PRIVILEGE'] ?? 'N/A';
+              print(privilege);
               name = adminDetails['NAME'] ?? 'N/A';
               staffID = adminDetails['STAFF ID'] ?? 'N/A';
               branch = adminDetails['BRANCH'] ?? 'N/A';
-              yearCoordinatorStream = adminDetails['STREAM'] ?? 'N/A';
-              yearCoordinatorYear = adminDetails['YEAR'] ?? 'N/A';
+              stream = adminDetails['STREAM'] ?? 'N/A';
+              year = adminDetails['YEAR'] ?? 'N/A';
 
-              data.addAll({'UID': userId, 'TOKEN':token ??'','PRIVILEGE': privilege,'NAME':name,'BRANCH': branch,'STAFF ID':staffID,'MAIL ID':email,
-                'YEAR COORDINATOR YEAR':yearCoordinatorYear,'YEAR COORDINATOR STREAM': yearCoordinatorStream,});
+              List<String> yearCoordinatorYearList = year.split(',');
+              List<String> updatedYearList = [];
+
+              for (String year in yearCoordinatorYearList) {
+                if (utils.isRomanNumeral(year)) {
+                  String str = utils.romanToInteger(year).toString();
+                  updatedYearList.add(str);
+                } else {
+                  updatedYearList.add(year);
+                }
+              }
+
+              year = updatedYearList.join(',');
+              print('year: $year');
+              print('branch: $branch');
+
+              if(privilege=='YEAR COORDINATOR'){
+                data.addAll({'UID': userId, 'TOKEN':token ??'','PRIVILEGE': privilege,'NAME':name,'BRANCH': branch,'STAFF ID':staffID,'MAIL ID':email,
+                  'YEAR COORDINATOR YEAR':year,'YEAR COORDINATOR STREAM': stream,});
+              }else if(privilege=='HOD'){
+                data.addAll({'UID': userId, 'TOKEN':token ??'','PRIVILEGE': privilege,'NAME':name,'BRANCH': branch,'STAFF ID':staffID,'MAIL ID':email,
+                  'HOD YEAR':year,'HOD STREAM': stream,});
+              }else{
+                utils.showToastMessage('UnNamed data found', context);
+                return;
+              }
+
             }else{
               utils.showToastMessage('You are not authorized to acess ', context);
               await GoogleSignIn().disconnect();

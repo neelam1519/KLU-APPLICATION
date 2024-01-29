@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:klu_flutter/leaveapply/leavedetailsview.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
@@ -24,8 +23,9 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   SharedPreferences sharedPreferences = SharedPreferences();
   Utils utils=Utils();
   late List<String> yearList=[];
+  late List<String> streamList=[];
   late DocumentReference? detailsRetrievingRef;
-  late String? section,branch,year,stream,staffID;
+  late String? section='',branch,year,stream,staffID;
 
   List<String> spinnerOptions1 = [];
   List<String> spinnerOptions2 = [];
@@ -47,11 +47,36 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     if (widget.privilege == 'HOD') {
       isButtonVisible = true;
       isSpinner1Visible = true;
-    } else if (widget.privilege == 'FACULTY ADVISOR') {
-      // Handle FACULTY ADVISOR case
-    } else if (widget.privilege == 'YEAR COORDINATOR') {
+      isSpinner2Visible = true;
+
+      String? year = await sharedPreferences.getSecurePrefsValue('HOD YEAR');
+      yearList = year!.split(',');
+      String? stream = await sharedPreferences.getSecurePrefsValue('HOD STREAM');
+      streamList = stream!.split(',');
+
+      spinnerOptions1=streamList;
+      spinnerOptions2=yearList;
+      selectedSpinnerOption1=streamList[0];
+      selectedSpinnerOption2=yearList[0];
+
+      print('initializeData $yearList  $streamList');
+
+    }else if (widget.privilege == 'YEAR COORDINATOR') {
       isButtonVisible = true;
       isSpinner1Visible = true;
+      isSpinner2Visible=true;
+
+      String? year = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
+      yearList = year!.split(',');
+      String? stream = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
+      streamList = stream!.split(',');
+
+      spinnerOptions1=streamList;
+      spinnerOptions2=yearList;
+      selectedSpinnerOption1=streamList[0];
+      selectedSpinnerOption2=yearList[0];
+      print('initializeData $yearList  $selectedSpinnerOption1');
+
     } else if (widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
       isButtonVisible = true;
       isSpinner1Visible = true;
@@ -65,26 +90,11 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
       selectedSpinnerOption2 = section ?? 'SECTION NOT FOUND';
       String? year = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
       yearList = year!.split(',');
-
-      // if(spinnerOptions1=='SECTION'){
-      //   spinnerOptions2.add(section!);
-      //   selectedSpinnerOption2 = section ?? 'SECTION NOT FOUND';
-      // }else if(spinnerOptions1=='YEAR COORDINATOR'){
-      //   String? year = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
-      //   List<String> yearList = year!.split(',');
-      //   spinnerOptions2 = yearList;
-      //
-      // }else{
-      //   utils.showToastMessage('SPINNE ERROR', context);
-      // }
-      // Set selectedSpinnerOption1 to the first item if the list is not empty
-      selectedSpinnerOption1 = spinnerOptions1.isNotEmpty ? spinnerOptions1[0] : '';
-
-      setState(() {});
       print('initializeData: $section $selectedSpinnerOption1 $spinnerOptions1 $spinnerOptions2');
     } else {
       utils.showToastMessage('UNABLE TO GET THE DETAILS', context);
     }
+    setState(() {});
   }
 
   @override
@@ -102,7 +112,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
                 onChanged: (String? newValue) {
                   setState(() {
                     selectedSpinnerOption1 = newValue!;
-                    updateSpinner();
+                    //updateSpinner();
                     // Handle changes for the first spinner
                   });
                 },
@@ -174,15 +184,19 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     );
   }
 
-  void updateSpinner(){
-    if(selectedSpinnerOption1=='SECTION'){
-      spinnerOptions2.clear();
-      spinnerOptions2.add(section!);
-      selectedSpinnerOption2=section!;
-    }else if(selectedSpinnerOption1=='YEAR COORDINATOR'){
-      spinnerOptions2.clear();
-      spinnerOptions2 = spinnerOptions2+yearList;
-      selectedSpinnerOption2=yearList[0] ;
+  void updateSpinner() {
+    if (widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
+      if (selectedSpinnerOption1 == 'SECTION') {
+        isButtonVisible = false;
+        spinnerOptions2.clear();
+        spinnerOptions2.add(section!);
+        selectedSpinnerOption2 = section!;
+      } else if (selectedSpinnerOption1 == 'YEAR COORDINATOR') {
+        isButtonVisible = true;
+        spinnerOptions2.clear();
+        spinnerOptions2 = spinnerOptions2 + yearList;
+        selectedSpinnerOption2 = yearList[0];
+      }
     }
   }
 
@@ -334,7 +348,11 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => LeaveDetailsView(leaveid: leaveCardData.id, leaveformtype: leaveformtype, lecturerRef: detailsRetrievingRef.toString()),
+                  builder: (context) => LeaveDetailsView(
+                    leaveid: leaveCardData.id,
+                    leaveformtype: leaveformtype,
+                    lecturerRef: detailsRetrievingRef!.path,
+                  ),
                 ),
               );
             },
@@ -344,11 +362,12 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     );
   }
 
+
   Future<List<LeaveCardViewData>> _fetchLeaveData(String formType) async {
     print('fetchLeaveData started');
-    String? yearCoordinatorYear=await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
-    String? yearCoordinatorStream=await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
+    String? yearCoordinatorStream=await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
     String? yearCoordinatorBranch=await sharedPreferences.getSecurePrefsValue('BRANCH');
+    String? hodBranch=await sharedPreferences.getSecurePrefsValue('BRANCH');
     String? faYear=await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
     String? faStream=await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
     String? faBranch=await sharedPreferences.getSecurePrefsValue('BRANCH');
@@ -356,13 +375,14 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
     if (widget.privilege == 'HOD') {
       // Handle HOD case
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$hodBranch/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$formType');
     } else if (widget.privilege == 'FACULTY ADVISOR') {
 
       detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$faYear/$faBranch/$faStream/$faSection/LEAVE FORMS/$formType');
 
     } else if (widget.privilege == 'YEAR COORDINATOR') {
 
-      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$spinnerOptions1/$yearCoordinatorBranch/YEAR COORDINATOR/$yearCoordinatorStream/LEAVE FORMS/$formType');
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$yearCoordinatorBranch/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$formType');
 
     } else if (widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
 

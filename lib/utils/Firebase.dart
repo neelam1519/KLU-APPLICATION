@@ -4,9 +4,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:klu_flutter/model/model.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
+import 'package:klu_flutter/utils/utils.dart';
 
 class FirebaseService {
   SharedPreferences sharedPreferences=SharedPreferences();
+  Utils utils=Utils();
   FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   Future<void> uploadMapDetailsToDoc(DocumentReference documentReference, Map<String, String> data) async {
@@ -35,7 +37,7 @@ class FirebaseService {
         return mapData ?? {};
       } else {
         // Document does not exist
-        print('Document does not exist');
+        print('Document does not exist getMapDetailsFromDoc');
         return {}; // Return an empty map or handle it accordingly
       }
     } catch (error) {
@@ -163,7 +165,7 @@ class FirebaseService {
       return LeaveCardViewData(id, startDate, returnDate, verification);
     } else {
       // Handle the case when the document doesn't exist
-      print('Document does not exist');
+      print('Document does not exist getSpecificLeaveData');
       return null;
     }
   }
@@ -309,8 +311,9 @@ class FirebaseService {
 
     Future<DocumentReference?> getDocumentReferenceFieldValue(DocumentReference documentReference, String field) async {
     try {
+      //DocumentReference documentReference=FirebaseFirestore.instance.doc('KLU/ADMINS/3/CSE/YEAR COORDINATOR/CS/LEAVE FORMS/PENDING');
       DocumentSnapshot documentSnapshot = await documentReference.get();
-
+      print('getDocumentReferenceFieldValue documentReference: ${documentReference.toString()}  field: $field');
       if (documentSnapshot.exists) {
         Map<String, dynamic> data = documentSnapshot.data() as Map<String, dynamic>;
 
@@ -330,14 +333,15 @@ class FirebaseService {
           return null;
         }
       } else {
-        print('Document does not exist.');
+        print('Document does not exist getDocumentReferenceFieldValue.');
         return null;
       }
     } catch (e) {
-      print('Error getting field value: $e');
+      utils.exceptions(e, 'getDocumentReferenceFieldValue');
       return null;
     }
   }
+
   Future<void> deleteFieldInCollection(CollectionReference collectionReference, String field) async {
     try {
       // Get all documents in the collection
