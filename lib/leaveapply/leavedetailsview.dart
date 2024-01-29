@@ -37,19 +37,12 @@ class _LeaveDataState extends State<LeaveDetailsView> {
   Future<void> initializeData() async {
     privilege = await sharedPreferences.getSecurePrefsValue("PRIVILEGE");
     lecturerReference=FirebaseFirestore.instance.doc(widget.lecturerRef);
-    if (privilege != null) {
-      totalLeaveDetails = await getLeaveDetails();
-      if ((widget.leaveformtype != 'ACCEPTED' && widget.leaveformtype != 'REJECTED') && widget.leaveformtype == 'PENDING' && privilege != 'STUDENT') {
-        shouldShowAcceptButton = true;
-        shouldShowRejectButton = true;
-      }
-      setState(() {});
-    } else {
-      EasyLoading.dismiss();
-      // Handle the case when privilege is null
-      print('Error: Privilege is null');
-      // You might want to show an error message or handle it appropriately
+    if ((widget.leaveformtype != 'ACCEPTED' && widget.leaveformtype != 'REJECTED') && widget.leaveformtype == 'PENDING' && privilege != 'STUDENT') {
+      shouldShowAcceptButton = true;
+      shouldShowRejectButton = true;
     }
+    totalLeaveDetails = await getLeaveDetails();
+    setState(() {});
   }
 
   @override
@@ -275,6 +268,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
 
       if (privilege == 'STUDENT') {
         studentDetailsRef = FirebaseFirestore.instance.doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo');
+        print('studentDetailsRef: ${studentDetailsRef.path}');
       } else
       if (privilege == 'FACULTY ADVISOR' || privilege == 'YEAR COORDINATOR' || privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR' || privilege == 'HOSTEL WARDEN' || privilege=='HOD') {
         studentDetailsRef = (await firebaseService.getDocumentReferenceFieldValue(lecturerReference, widget.leaveid))!;

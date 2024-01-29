@@ -19,6 +19,7 @@ class StudentsLeaveFormsView extends StatefulWidget {
 class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
   final List<LeaveCardViewData> data = [];
   Utils utils = Utils();
+  late DocumentReference studentLeaveFormRef;
 
   @override
   void initState() {
@@ -43,6 +44,8 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
       // Handle error gracefully
     }
   }
+
+
 
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,7 +92,7 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => LeaveDetailsView(leaveid: cardData.id, leaveformtype: 'STUDENT',lecturerRef: ''),
+                            builder: (context) => LeaveDetailsView(leaveid: cardData.id, leaveformtype: '',lecturerRef: studentLeaveFormRef.toString()),
                           ),
                         );
                       }
@@ -141,8 +144,7 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
 
       final List<LeaveCardViewData?> leaveCardData = [];
 
-      CollectionReference studentLeaveRef =
-      FirebaseFirestore.instance.collection('/KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo/LEAVE FORMS/');
+      CollectionReference studentLeaveRef = FirebaseFirestore.instance.collection('/KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo/LEAVE FORMS/');
 
       List<String> documentNames = await firebaseService.getDocuments(studentLeaveRef);
       documentNames.sort((a, b) => b.compareTo(a));
@@ -150,7 +152,7 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
       print("LeaveCardData documentNames: ${documentNames.toString()}");
 
       for (String document in documentNames) {
-        DocumentReference studentLeaveFormRef = studentLeaveRef.doc(document);
+        studentLeaveFormRef = studentLeaveRef.doc(document);
         leaveCardData.add(await firebaseService.getSpecificLeaveData(studentLeaveFormRef));
       }
 
