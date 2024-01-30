@@ -24,14 +24,14 @@ class Reader{
           var headers = excel.tables[table]!.rows.first;
 
           // Extract header names from Data instances
-          var headerNames = headers.map((data) => data!.value.toString()).toList();
+          var headerNames = headers.map((data) => data!.value.toString().trim()).toList();
           print('Headers: $headerNames');
 
           List<int> indexes = [];
 
           for (MapEntry<String, String> header in headerAndValues.entries) {
-            String key = header.key;
-            String values = header.value;
+            String key = header.key.trim();
+            String values = header.value.trim();
             var allIndexes = <int>[];
             var columnIndex = headers.indexWhere((header) => header!.value.toString() == key);
             if (columnIndex != -1) {

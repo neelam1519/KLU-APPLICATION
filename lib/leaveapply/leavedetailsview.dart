@@ -173,8 +173,6 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       await firebaseService.storeDocumentReference(redirectingRef, widget.leaveid, value);
 
       Navigator.pop(context);
-      Navigator.pop(context);
-      Navigator.push(context, MaterialPageRoute(builder: (context) => LecturerLeaveFormsView(privilege: privilege,)));
 
       EasyLoading.dismiss();
     } catch (e) {
@@ -293,22 +291,17 @@ class _LeaveDataState extends State<LeaveDetailsView> {
         print('$key : $value');
       }
 
-      bool faApproval = studentLeaveDetails['FACULTY ADVISOR APPROVAL'] ??
-          false;
-      bool faDecline = studentLeaveDetails['FACULTY ADVISOR DECLINE'] ?? false;
-      bool yearCoordinatorApproval = studentLeaveDetails['YEAR COORDINATOR APPROVAL'] ??
-          false;
-      bool yearCoordinatorDecline = studentLeaveDetails['YEAR COORDINATOR DECLINE'] ??
-          false;
-      bool hostelWardenDecline = studentLeaveDetails['HOSTEL WARDEN DECLINE'] ??
-          false;
-      bool hostelWardenApproval = studentLeaveDetails['HOSTEL WARDEN APPROVAL'] ??
-          false;
+      dynamic faApproval = studentLeaveDetails['FACULTY ADVISOR APPROVAL'] ?? false;
+      dynamic faDecline = studentLeaveDetails['FACULTY ADVISOR DECLINED'] ?? false;
+      dynamic yearCoordinatorApproval = studentLeaveDetails['YEAR COORDINATOR APPROVAL'] ?? false;
+      dynamic yearCoordinatorDecline = studentLeaveDetails['YEAR COORDINATOR DECLINED'] ?? false;
+      dynamic hostelWardenDecline = studentLeaveDetails['HOSTEL WARDEN DECLINED'] ?? false;
+      dynamic hostelWardenApproval = studentLeaveDetails['HOSTEL WARDEN APPROVAL'] ?? false;
 
+      print('fadecline: ${faDecline.toString()}');
       bool verified = faApproval && yearCoordinatorApproval &&
           hostelWardenApproval;
-      bool declined = faDecline || yearCoordinatorDecline ||
-          hostelWardenDecline;
+      bool declined = faDecline || yearCoordinatorDecline || hostelWardenDecline;
 
       String verification;
       if (verified) {
@@ -361,8 +354,6 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       EasyLoading.dismiss();
       // Pop the current route and any previous StudentsLeaveApply routes
       Navigator.pop(context);
-      Navigator.pop(context);
-      Navigator.push(context, MaterialPageRoute(builder: (context) => StudentsLeaveFormsView()));
       utils.showToastMessage("Sucessfully deleted", context);
       // Safely access currentContext using null-aware operator
     } catch (error) {

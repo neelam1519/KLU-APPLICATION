@@ -159,182 +159,246 @@ class MyHomePage extends StatelessWidget {
           SharedPreferences sharedPreferences=SharedPreferences();
           FirebaseService firebaseService=FirebaseService();
 
-          lecturerorstudent='STAFF';
+          //lecturerorstudent='STAFF';
           //utils.showToastMessage(lecturerorstudent, context);
 
           if(lecturerorstudent=='STUDENT'){
-            privilege='STUDENT';
-            print('STUDENT LOGIN SUCCESSFUL');
-            sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', privilege);
+            try {
+              privilege = 'STUDENT';
+              print('STUDENT LOGIN SUCCESSFUL');
+              sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', privilege);
 
-            List<String> listOfBranches=['ECE','CSE','MECHANICAL ENGINEERING','CIVIL ENGINEERING'];
+              List<String> listOfBranches = ['ECE', 'CSE', 'MECHANICAL ENGINEERING', 'CIVIL ENGINEERING'];
 
-            Map<String,String> details={};
-            year=getYearFromRegNo(id);
-            branch=getBranchFromRegNo(id);
-            String file='$year $branch STUDENTS';
-            String encodedYear = Uri.encodeComponent(year);
-            String encodedFile = Uri.encodeComponent(file);
-            Map<String,String> searchData={};
+              Map<String, String> details = {};
+              year = getYearFromRegNo(id);
+              branch = getBranchFromRegNo(id);
+              String file = '$year $branch STUDENTS';
+              String encodedYear = Uri.encodeComponent(year);
+              String encodedFile = Uri.encodeComponent(file);
+              Map<String, String> searchData = {};
 
-            listOfBranches=await utils.moveStringToFirstPlace(listOfBranches, branch);
+              listOfBranches =
+              await utils.moveStringToFirstPlace(listOfBranches, branch);
 
-            for(String string in listOfBranches){
-              String encodedBranch = Uri.encodeComponent(string);
-              String location='$encodedYear%2F$encodedBranch%2F$encodedFile';
-              searchData.addAll({'REG NO':id});
-              details=await downloadedDetail(location, 'STUDENTS LIST',searchData);
-              searchData.clear();
-              if(details.isNotEmpty){
-                branch=string;
-                break;
-              }
-            }
-
-            if(details.isEmpty){
-              utils.showToastMessage('NO DETAILS FOUND CONTACT FACULTY ADVISOR', context);
-              await GoogleSignIn().disconnect();
-              EasyLoading.dismiss();
-              return;
-            }
-
-            name=details['NAME']!;
-            section=details['SECTION']!;
-
-            String encodedFaDetails=Uri.encodeComponent("FA DETAILS");
-
-            searchData.addAll({'SECTION':section.trim()});
-            details=await downloadedDetail(encodedFaDetails, 'FACULTY ADVISORS', searchData);
-            searchData.clear();
-
-            faname=details['NAME']!;
-            famailid=details['MAIL ID']!;
-            fastaffid=details['STAFF ID']!;
-            String romanSlot=details['SLOT']!;
-            int slotNumber=utils.romanToInteger(romanSlot);
-            slot=slotNumber.toString();
-            stream=details['STREAM']!;
-
-            documentReference=FirebaseFirestore.instance.doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$id');
-            data.addAll({'UID': userId, 'TOKEN':token ??'','BRANCH': branch,'STREAM':stream,'NAME':name,'REGISTRATION NUMBER':id,'YEAR':year,'SECTION' : section,
-              'MAIL ID': email,'FACULTY ADVISOR NAME':faname,'FACULTY ADVISOR MAIL ID': famailid,'FACULTY ADVISOR STAFF ID': fastaffid,'SLOT':slot,
-              'HOSTEL NAME': 'BHARATHI HOSTEL','HOSTEL ROOM NUMBER':'215'});
-
-          }else if(lecturerorstudent=='STAFF'){
-            print('STAFF LOGGING IN');
-            String name,staffID,branch,mobileNumber,yearCoordinatorStream,yearCoordinatorYear,facultyAdvisorStream,facultyAdvisorSection,facultyAdvisorYear,slot;
-
-
-
-            Map<String,String> adminDetails={};
-            Map<String,String> searchData={};
-
-            searchData.addAll({'MAIL ID': email});
-            adminDetails=await downloadedDetail('ADMINS', 'ADMINS', searchData);
-
-            Map<String,String> faDetails={};
-            faDetails=await downloadedDetail('FA DETAILS', 'FA DETAILS', searchData);
-
-            if(adminDetails.isNotEmpty && faDetails.isNotEmpty){
-              print('FACULTY ADVISOR AND YEAR COORDINATOR');
-              privilege='FACULTY ADVISOR AND YEAR COORDINATOR';
-              name = adminDetails['NAME'] ?? 'N/A';
-              staffID = adminDetails['STAFF ID'] ?? 'N/A';
-              branch = adminDetails['BRANCH'] ?? 'N/A';
-              mobileNumber = faDetails['MOBILE NUMBER'] ?? 'N/A';
-              yearCoordinatorStream = adminDetails['STREAM'] ?? 'N/A';
-              yearCoordinatorYear = adminDetails['YEAR'] ?? 'N/A';
-              facultyAdvisorStream = faDetails['STREAM'] ?? 'N/A';
-              facultyAdvisorSection = faDetails['SECTION'] ?? 'N/A';
-              facultyAdvisorYear = faDetails['YEAR'] ?? 'N/A';
-
-              if(utils.isRomanNumeral(facultyAdvisorYear)){
-                facultyAdvisorYear=utils.romanToInteger(facultyAdvisorYear).toString();
-              }
-              List<String> yearCoordinatorYearList = yearCoordinatorYear.split(',');
-              List<String> updatedYearList = [];
-
-              for (String year in yearCoordinatorYearList) {
-                if (utils.isRomanNumeral(year)) {
-                  String str = utils.romanToInteger(year).toString();
-                  updatedYearList.add(str);
-                } else {
-                  updatedYearList.add(year);
+              for (String string in listOfBranches) {
+                String encodedBranch = Uri.encodeComponent(string);
+                String location = '$encodedYear%2F$encodedBranch%2F$encodedFile';
+                print('Location: ${location.toString()}');
+                searchData.addAll({'REG NO': id});
+                details = await downloadedDetail(location, 'STUDENTS LIST', searchData);
+                searchData.clear();
+                if (details.isNotEmpty) {
+                  branch = string;
+                  break;
                 }
               }
-
-              yearCoordinatorYear = updatedYearList.join(',');
-              print('yearCoordinatorYear: $yearCoordinatorYear');
-
-              data.addAll({'UID': userId, 'TOKEN':token ??'','PRIVILEGE': privilege,'NAME':name,'BRANCH': branch,'MOBILE NUMBER': mobileNumber,'STAFF ID':staffID,'MAIL ID':email,
-                'YEAR COORDINATOR YEAR':yearCoordinatorYear,'YEAR COORDINATOR STREAM': yearCoordinatorStream,'FACULTY ADVISOR STREAM': facultyAdvisorStream,''
-                    'FACULTY ADVISOR YEAR': facultyAdvisorYear, 'FACULTY ADVISOR SECTION': facultyAdvisorSection});
-
-            }else if(faDetails.isNotEmpty){
-              print('FACULTY ADVISOR');
-              privilege='FACULTY ADVISOR';
-              name = faDetails['NAME'] ?? 'N/A';
-              staffID = faDetails['STAFF ID'] ?? 'N/A';
-              branch = faDetails['BRANCH'] ?? 'N/A';
-              mobileNumber = faDetails['MOBILE NUMBER'] ?? 'N/A';
-              facultyAdvisorYear=faDetails['YEAR']!;
-              facultyAdvisorStream = faDetails['STREAM'] ?? 'N/A';
-              facultyAdvisorSection = faDetails['SECTION'] ?? 'N/A';
-              slot = faDetails['SLOT'] ?? 'N/A';
-              facultyAdvisorYear = faDetails['YEAR'] ?? 'N/A';
-
-              if(utils.isRomanNumeral(facultyAdvisorYear)){
-                facultyAdvisorYear=utils.romanToInteger(facultyAdvisorYear).toString();
-              }
-
-              data.addAll({'UID': userId, 'TOKEN':token ??'','PRIVILEGE': privilege,'NAME':name,'BRANCH': branch,'MOBILE NUMBER': mobileNumber,'STAFF ID':staffID,
-                'MAIL ID':email, 'FACULTY ADVISOR STREAM': facultyAdvisorStream, 'FACULTY ADVISOR SECTION': facultyAdvisorSection,'FACULTY ADVISOR YEAR':facultyAdvisorYear,
-                'SLOT':slot});
-
-            }else if(adminDetails.isNotEmpty){
-              privilege = adminDetails['PRIVILEGE'] ?? 'N/A';
-              print(privilege);
-              name = adminDetails['NAME'] ?? 'N/A';
-              staffID = adminDetails['STAFF ID'] ?? 'N/A';
-              branch = adminDetails['BRANCH'] ?? 'N/A';
-              stream = adminDetails['STREAM'] ?? 'N/A';
-              year = adminDetails['YEAR'] ?? 'N/A';
-
-              List<String> yearCoordinatorYearList = year.split(',');
-              List<String> updatedYearList = [];
-
-              for (String year in yearCoordinatorYearList) {
-                if (utils.isRomanNumeral(year)) {
-                  String str = utils.romanToInteger(year).toString();
-                  updatedYearList.add(str);
-                } else {
-                  updatedYearList.add(year);
-                }
-              }
-
-              year = updatedYearList.join(',');
-              print('year: $year');
-              print('branch: $branch');
-
-              if(privilege=='YEAR COORDINATOR'){
-                data.addAll({'UID': userId, 'TOKEN':token ??'','PRIVILEGE': privilege,'NAME':name,'BRANCH': branch,'STAFF ID':staffID,'MAIL ID':email,
-                  'YEAR COORDINATOR YEAR':year,'YEAR COORDINATOR STREAM': stream,});
-              }else if(privilege=='HOD'){
-                data.addAll({'UID': userId, 'TOKEN':token ??'','PRIVILEGE': privilege,'NAME':name,'BRANCH': branch,'STAFF ID':staffID,'MAIL ID':email,
-                  'HOD YEAR':year,'HOD STREAM': stream,});
-              }else{
-                utils.showToastMessage('UnNamed data found', context);
+              print('STUDENT EXITED FOR LOOP');
+              if (details.isEmpty) {
+                utils.showToastMessage('NO DETAILS FOUND CONTACT FACULTY ADVISOR', context);
+                print('DETAILS ARE EMPTY');
+                await GoogleSignIn().disconnect();
+                EasyLoading.dismiss();
                 return;
               }
 
-            }else{
-              utils.showToastMessage('You are not authorized to acess ', context);
+              name = details['NAME']!;
+              section = details['SECTION']!;
+
+              print('student: $name  $section');
+
+              String encodedFaDetails = Uri.encodeComponent("FA DETAILS");
+
+              searchData.addAll({'SECTION': section.trim(), 'YEAR': year});
+              print('data: ${searchData.toString()}');
+              details = await downloadedDetail(encodedFaDetails, 'FACULTY ADVISORS', searchData);
+              searchData.clear();
+
+              faname = details['NAME']!;
+              famailid = details['MAIL ID']!;
+              fastaffid = details['STAFF ID']!;
+              String romanSlot = details['SLOT']!;
+              int slotNumber = utils.romanToInteger(romanSlot);
+              slot = slotNumber.toString();
+              stream = details['STREAM']!;
+
+              documentReference = FirebaseFirestore.instance.doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$id');
+              data.addAll({
+                'UID': userId,
+                'TOKEN': token ?? '',
+                'BRANCH': branch,
+                'STREAM': stream,
+                'NAME': name,
+                'REGISTRATION NUMBER': id,
+                'YEAR': year,
+                'SECTION': section,
+                'MAIL ID': email,
+                'FACULTY ADVISOR NAME': faname,
+                'FACULTY ADVISOR MAIL ID': famailid,
+                'FACULTY ADVISOR STAFF ID': fastaffid,
+                'SLOT': slot,
+                'HOSTEL NAME': 'BHARATHI HOSTEL',
+                'HOSTEL ROOM NUMBER': '215'
+              });
+
+              utils.showToastMessage(data.toString(), context);
+            }catch(e){
+              utils.showToastMessage('ERROR OCCURED CONTACT DEVELOPER', context);
+              print('STUDENT: ${e.toString()}');
+              utils.exceptions(e, 'STUDENT');
               await GoogleSignIn().disconnect();
               EasyLoading.dismiss();
               return;
             }
 
-            documentReference=FirebaseFirestore.instance.doc('KLU/STAFF DETAILS/$branch/$staffID');
+          }else if(lecturerorstudent=='STAFF'){
+            try {
+              print('STAFF LOGGING IN');
+              String name, staffID, branch, mobileNumber, yearCoordinatorStream,
+                  yearCoordinatorYear, facultyAdvisorStream,
+                  facultyAdvisorSection, facultyAdvisorYear, slot;
+
+              Map<String, String> adminDetails = {};
+              Map<String, String> searchData = {};
+
+              searchData.addAll({'MAIL ID': email});
+              adminDetails =
+              await downloadedDetail('ADMINS', 'ADMINS', searchData);
+
+              Map<String, String> faDetails = {};
+              faDetails =
+              await downloadedDetail('FA DETAILS', 'FA DETAILS', searchData);
+
+              if (adminDetails.isNotEmpty && faDetails.isNotEmpty) {
+                print('FACULTY ADVISOR AND YEAR COORDINATOR');
+                privilege = 'FACULTY ADVISOR AND YEAR COORDINATOR';
+                name = adminDetails['NAME'] ?? 'N/A';
+                staffID = adminDetails['STAFF ID'] ?? 'N/A';
+                branch = adminDetails['BRANCH'] ?? 'N/A';
+                mobileNumber = faDetails['MOBILE NUMBER'] ?? 'N/A';
+                yearCoordinatorStream = adminDetails['STREAM'] ?? 'N/A';
+                yearCoordinatorYear = adminDetails['YEAR'] ?? 'N/A';
+                facultyAdvisorStream = faDetails['STREAM'] ?? 'N/A';
+                facultyAdvisorSection = faDetails['SECTION'] ?? 'N/A';
+                facultyAdvisorYear = faDetails['YEAR'] ?? 'N/A';
+
+                if (utils.isRomanNumeral(facultyAdvisorYear)) {
+                  facultyAdvisorYear =
+                      utils.romanToInteger(facultyAdvisorYear).toString();
+                }
+                List<String> yearCoordinatorYearList = yearCoordinatorYear
+                    .split(',');
+                List<String> updatedYearList = [];
+
+                for (String year in yearCoordinatorYearList) {
+                  if (utils.isRomanNumeral(year)) {
+                    String str = utils.romanToInteger(year).toString();
+                    updatedYearList.add(str);
+                  } else {
+                    updatedYearList.add(year);
+                  }
+                }
+
+                yearCoordinatorYear = updatedYearList.join(',');
+                print('yearCoordinatorYear: $yearCoordinatorYear');
+
+                data.addAll({'UID': userId, 'TOKEN': token ?? '', 'PRIVILEGE': privilege, 'NAME': name, 'BRANCH': branch, 'MOBILE NUMBER': mobileNumber, 'STAFF ID': staffID,
+                  'MAIL ID': email, 'YEAR COORDINATOR YEAR': yearCoordinatorYear, 'YEAR COORDINATOR STREAM': yearCoordinatorStream, 'FACULTY ADVISOR STREAM': facultyAdvisorStream,
+                  'FACULTY ADVISOR YEAR': facultyAdvisorYear, 'FACULTY ADVISOR SECTION': facultyAdvisorSection
+                });
+              } else if (faDetails.isNotEmpty) {
+                print('FACULTY ADVISOR');
+                privilege = 'FACULTY ADVISOR';
+                name = faDetails['NAME'] ?? 'N/A';
+                staffID = faDetails['STAFF ID'] ?? 'N/A';
+                branch = faDetails['BRANCH'] ?? 'N/A';
+                mobileNumber = faDetails['MOBILE NUMBER'] ?? 'N/A';
+                facultyAdvisorYear = faDetails['YEAR']!;
+                facultyAdvisorStream = faDetails['STREAM'] ?? 'N/A';
+                facultyAdvisorSection = faDetails['SECTION'] ?? 'N/A';
+                slot = faDetails['SLOT'] ?? 'N/A';
+                facultyAdvisorYear = faDetails['YEAR'] ?? 'N/A';
+
+                if (utils.isRomanNumeral(facultyAdvisorYear)) {
+                  facultyAdvisorYear =
+                      utils.romanToInteger(facultyAdvisorYear).toString();
+                }
+
+                data.addAll({'UID': userId, 'TOKEN': token ?? '', 'PRIVILEGE': privilege, 'NAME': name, 'BRANCH': branch, 'MOBILE NUMBER': mobileNumber, 'STAFF ID': staffID,
+                  'MAIL ID': email, 'FACULTY ADVISOR STREAM': facultyAdvisorStream, 'FACULTY ADVISOR SECTION': facultyAdvisorSection, 'FACULTY ADVISOR YEAR': facultyAdvisorYear, 'SLOT': slot
+                });
+              } else if (adminDetails.isNotEmpty) {
+                privilege = adminDetails['PRIVILEGE'] ?? 'N/A';
+                print(privilege);
+                name = adminDetails['NAME'] ?? 'N/A';
+                staffID = adminDetails['STAFF ID'] ?? 'N/A';
+                branch = adminDetails['BRANCH'] ?? 'N/A';
+                stream = adminDetails['STREAM'] ?? 'N/A';
+                year = adminDetails['YEAR'] ?? 'N/A';
+
+                List<String> yearCoordinatorYearList = year.split(',');
+                List<String> updatedYearList = [];
+
+                for (String year in yearCoordinatorYearList) {
+                  if (utils.isRomanNumeral(year)) {
+                    String str = utils.romanToInteger(year).toString();
+                    updatedYearList.add(str);
+                  } else {
+                    updatedYearList.add(year);
+                  }
+                }
+
+                year = updatedYearList.join(',');
+                print('year: $year');
+                print('branch: $branch');
+
+                if (privilege == 'YEAR COORDINATOR') {
+                  data.addAll({
+                    'UID': userId,
+                    'TOKEN': token ?? '',
+                    'PRIVILEGE': privilege,
+                    'NAME': name,
+                    'BRANCH': branch,
+                    'STAFF ID': staffID,
+                    'MAIL ID': email,
+                    'YEAR COORDINATOR YEAR': year,
+                    'YEAR COORDINATOR STREAM': stream,
+                  });
+                } else if (privilege == 'HOD') {
+                  data.addAll({
+                    'UID': userId,
+                    'TOKEN': token ?? '',
+                    'PRIVILEGE': privilege,
+                    'NAME': name,
+                    'BRANCH': branch,
+                    'STAFF ID': staffID,
+                    'MAIL ID': email,
+                    'HOD YEAR': year,
+                    'HOD STREAM': stream,
+                  });
+                } else {
+                  utils.showToastMessage('UnNamed data found', context);
+                  return;
+                }
+              } else {
+                utils.showToastMessage(
+                    'You are not authorized to acess ', context);
+                await GoogleSignIn().disconnect();
+                EasyLoading.dismiss();
+                return;
+              }
+
+              utils.showToastMessage(data.toString(), context);
+
+              documentReference = FirebaseFirestore.instance.doc(
+                  'KLU/STAFF DETAILS/$branch/$staffID');
+            }catch(e){
+              utils.showToastMessage('ERROR OCCURED CONTACT DEVELOPER', context);
+              utils.exceptions(e, 'STUDENT');
+              await GoogleSignIn().disconnect();
+              EasyLoading.dismiss();
+              return;
+            }
 
           }else{
             utils.showToastMessage('Unknown Login', context);
@@ -352,7 +416,6 @@ class MyHomePage extends StatelessWidget {
           EasyLoading.dismiss();
           Navigator.pop(context);
           Navigator.push(context, MaterialPageRoute(builder: (context) => Home(loggedUser:privilege)));
-          Navigator.push(context, MaterialPageRoute(builder: (context) => MyApp()));
 
           print("Redirecting to home page");
         } else {
@@ -364,6 +427,8 @@ class MyHomePage extends StatelessWidget {
     } catch (error) {
       EasyLoading.dismiss();
       print("Error signing in with Google: $error");
+      EasyLoading.dismiss();
+      return;
     }
   }
 

@@ -1,4 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:klu_flutter/utils/Firebase.dart';
+import 'package:klu_flutter/utils/shraredprefs.dart';
+import 'package:klu_flutter/utils/utils.dart';
 
 class UserAccount extends StatefulWidget {
   @override
@@ -6,29 +10,29 @@ class UserAccount extends StatefulWidget {
 }
 
 class _UserAccountState extends State<UserAccount> {
-  // Variables to store user details
-  String name = "John Doe";
-  String email = "john.doe@example.com";
-  String regNo = "ABC123";
-  String mobileNumber = ""; // To store user's mobile number
-  String otp = ""; // To store user's entered OTP
-  bool showOtpField = false; // Flag to show/hide OTP field
+  Utils utils = Utils();
+  SharedPreferences sharedPreferences = SharedPreferences();
+  FirebaseService firebaseService = FirebaseService();
 
-  // Method to handle image upload
-  void handleImageUpload() {
-    // Implement image upload logic here
-    // This could involve showing a file picker or launching the camera, depending on your requirements
+  Map<String, dynamic> userDetails = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch user details when the widget is initialized
+    fetchUserDetails();
   }
 
-  // Method to initiate OTP verification
-  void initiateOtpVerification() {
-    // Implement OTP verification logic here
-    // This could involve sending an OTP to the entered mobile number
-
-    // Set the flag to show the OTP field
-    setState(() {
-      showOtpField = true;
-    });
+  Future<void> fetchUserDetails() async {
+    try {
+      Map<String, dynamic> fetchedUserDetails = await getUserDetails();
+      setState(() {
+        userDetails = fetchedUserDetails;
+      });
+    } catch (e) {
+      print("Error fetching user details: $e");
+      // Handle the error accordingly
+    }
   }
 
   @override
@@ -36,141 +40,62 @@ class _UserAccountState extends State<UserAccount> {
     return Scaffold(
       appBar: AppBar(
         title: Text('User Account'),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            // Navigate back when the back button is pressed
-            Navigator.pop(context);
-          },
-        ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Image at the top and center
-            Container(
-              width: double.infinity,
-              height: 200.0,
-              color: Colors.grey, // Placeholder color
-              child: Center(
-                child: Text(
-                  'User Image', // Replace with your image widget or logic
-                  style: TextStyle(color: Colors.white),
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'User Details',
+                style: TextStyle(
+                  fontSize: 20.0,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-
-            // SizedBox to create space between image and button
-            SizedBox(height: 16),
-
-            // Button to upload image
-            ElevatedButton(
-              onPressed: handleImageUpload,
-              child: Text('Upload Image'),
-            ),
-
-            // SizedBox to create space between button and TextViews
-            SizedBox(height: 16),
-
-            // TextViews with user details
-            Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Increase the size of TextViews and set them to match the width
-                  SizedBox(
-                    width: double.infinity,
-                    child: Text(
-                      'Name: $name',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: Text(
-                      'Email: $email',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: Text(
-                      'Registration Number: $regNo',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // SizedBox to create space between TextViews and MobileNumber/OTP row
-            SizedBox(height: 16),
-
-            // MobileNumber/OTP row
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  // Expanded widget makes sure MobileNumber takes the whole width when OTP is not visible
-                  Expanded(
-                    child: TextField(
-                      onChanged: (value) {
-                        // Update mobileNumber variable when user enters mobile number
-                        setState(() {
-                          mobileNumber = value;
-                        });
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Mobile Number',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-
-                  // SizedBox to create space between MobileNumber and OTP
-                  SizedBox(width: 16),
-
-                  // Conditional rendering of OTP TextField
-                  showOtpField
-                      ? Expanded(
-                    child: TextField(
-                      onChanged: (value) {
-                        // Update otp variable when user enters OTP
-                        setState(() {
-                          otp = value;
-                        });
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Enter OTP',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  )
-                      : SizedBox.shrink(),
-
-                  // SizedBox to create space between OTP TextField and Verify OTP button
-                  SizedBox(width: 16),
-
-                  // Button to initiate OTP verification or get OTP
-                  ElevatedButton(
-                    onPressed: showOtpField ? initiateOtpVerification : () {},
-                    child: Text(showOtpField ? 'Verify OTP' : 'Get OTP'),
-                  ),
-                ],
-              ),
-            ),
-          ],
+              SizedBox(height: 10.0),
+              // Loop through the map details and display each key-value pair
+              for (var entry in userDetails.entries)
+                Text(
+                  '${entry.key}: ${entry.value ?? 'N/A'}',
+                  style: TextStyle(fontSize: 16.0),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
-}
 
-void main() {
-  runApp(MaterialApp(
-    home: UserAccount(),
-  ));
+  Future<Map<String, dynamic>> getUserDetails() async {
+    String? branch, year, stream, staffID, regNo, privilege;
+    DocumentReference detailsRetrievingRef = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
+
+    year = await sharedPreferences.getSecurePrefsValue("YEAR");
+    branch = await sharedPreferences.getSecurePrefsValue("BRANCH");
+    regNo = await sharedPreferences.getSecurePrefsValue("REGISTRATION NUMBER");
+    staffID = await sharedPreferences.getSecurePrefsValue("STAFF ID");
+    privilege = await sharedPreferences.getSecurePrefsValue("PRIVILEGE");
+    stream = await sharedPreferences.getSecurePrefsValue("STREAM");
+
+    if (privilege == 'STUDENT') {
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo');
+
+    } else if (privilege == 'FACULTY ADVISOR' ||
+        privilege == 'YEAR COORDINATOR' ||
+        privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR' ||
+        privilege == 'HOD') {
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/STAFF DETAILS/$staffID');
+    } else {
+      utils.showToastMessage('UNABLE TO GET THE REFERENCE DETAILS', context);
+    }
+    print('accountDocRef: ${detailsRetrievingRef.path}');
+
+    Map<String, dynamic> userDetails = await firebaseService.getMapDetailsFromDoc(detailsRetrievingRef);
+    userDetails.remove('TOKEN');
+    userDetails.remove('UID');
+
+    return userDetails;
+  }
 }
