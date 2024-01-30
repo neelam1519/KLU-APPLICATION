@@ -158,4 +158,9 @@ class Utils {
       print('Unexpected error: $e');
     }
   }
+
+  Future<void> clearSecureStorage() async {
+    final FlutterSecureStorage secureStorage = FlutterSecureStorage();
+    await secureStorage.deleteAll();
+  }
 }

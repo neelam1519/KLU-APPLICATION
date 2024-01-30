@@ -116,6 +116,7 @@ class _HomeState extends State<Home> {
                           if (connectivityResult == ConnectivityResult.none) {
                             utils.showToastMessage("Connect to the Internet", context);
                           } else {
+                            utils.showToastMessage('UNDER DEVELOPMENT', context);
                             print('SOC tapped!');
                           }
                           // Handle the onPressed action for the second image
@@ -207,7 +208,7 @@ class _HomeState extends State<Home> {
 
   Future<void> signOut(BuildContext context) async {
     try {
-      clearSecureStorage();
+      utils.clearSecureStorage();
       utils.clearTemporaryDirectory();
       await FirebaseAuth.instance.signOut();
       await GoogleSignIn().disconnect(); // Disconnect Google Sign-In
@@ -219,10 +220,4 @@ class _HomeState extends State<Home> {
       EasyLoading.dismiss();
     }
   }
-
-  Future<void> clearSecureStorage() async {
-    final FlutterSecureStorage secureStorage = FlutterSecureStorage();
-    await secureStorage.deleteAll();
-  }
-
 }
