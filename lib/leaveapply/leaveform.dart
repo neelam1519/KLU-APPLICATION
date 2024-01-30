@@ -177,10 +177,8 @@ class _LeaveFormState extends State<LeaveForm> {
     await firebaseService.storeDocumentReference(faPendingRef,leavecount,studentRef);
     // Pop the current route and any previous StudentsLeaveApply routes
     Navigator.pop(context);
-    Navigator.pop(context);
 
     utils.showToastMessage("The Leave Form is Sent to Faculty Advisor ${faName!.toUpperCase()} For approval", context);
-    Navigator.push(context, MaterialPageRoute(builder: (context) => StudentsLeaveFormsView()));
 
     EasyLoading.dismiss();
   }

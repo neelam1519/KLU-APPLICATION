@@ -17,9 +17,10 @@ class StudentsLeaveFormsView extends StatefulWidget {
 }
 
 class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
-  final List<LeaveCardViewData> data = [];
+  SharedPreferences sharedPreferences=SharedPreferences();
   Utils utils = Utils();
   late DocumentReference studentLeaveFormRef;
+  late CollectionReference studentLeaveRef=FirebaseFirestore.instance.collection('KLU');
 
   @override
   void initState() {
@@ -30,10 +31,15 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
 
   Future<void> fetchLeaveCardData() async {
     try {
-      final List<LeaveCardViewData?> fetchedData = await LeaveCardData();
+      String? year = await sharedPreferences.getSecurePrefsValue("YEAR");
+      String? branch = await sharedPreferences.getSecurePrefsValue("BRANCH");
+      String? regNo = await sharedPreferences.getSecurePrefsValue("REGISTRATION NUMBER");
+      String? stream = await sharedPreferences.getSecurePrefsValue("STREAM");
+
+      studentLeaveRef = FirebaseFirestore.instance.collection('/KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo/LEAVE FORMS/');
+
       setState(() {
-        data.clear();
-        data.addAll(fetchedData.where((item) => item != null).cast<LeaveCardViewData>());
+
         EasyLoading.dismiss();
       });
     } catch (error) {
@@ -45,67 +51,81 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
     }
   }
 
-
-
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Leave Data'),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: data.isEmpty
-                ? Center(child: Text('No Leave Data Available'))  // Replace CircularProgressIndicator with a Text widget
-                : ListView.builder(
-                    itemCount: data.length,
-                    itemBuilder: (context, index) {
-                final cardData = data[index];
-                return Card(
-                  child: ListTile(
-                    title: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Start: ${cardData.startdate}'),
-                            Text(" TO "),
-                            Text('Return: ${cardData.returndate}'),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('ID: ${cardData.id}'),
-                            Text('Status: ${cardData.verified}'),
-                          ],
-                        ),
-                      ],
-                    ),
-                    onTap: () async {
-                      final connectivityResult = await Connectivity().checkConnectivity();
-                      if (connectivityResult == ConnectivityResult.none) {
-                        utils.showToastMessage("Connect to Internet", context);
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => LeaveDetailsView(leaveid: cardData.id, leaveformtype: '',lecturerRef: studentLeaveFormRef.toString()),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: studentLeaveRef.snapshots(), // Listen to changes in the collection
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return CircularProgressIndicator(); // Loading indicator while data is being fetched
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text('No Leave Data Available'));
+          } else {
+            List<DocumentSnapshot> data = snapshot.data!.docs;
+
+            return Expanded(
+              child: ListView.builder(
+                itemCount: data.length,
+                itemBuilder: (context, index) {
+                  final cardData = data[index].data() as Map<String, dynamic>;
+                  // Assuming your document data is a Map<String, dynamic>
+                  print('StreamBuilder: ${cardData.toString()}');
+                  return Card(
+                    child: ListTile(
+                      title: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Start: ${cardData['START DATE']}'),
+                              Text(" TO "),
+                              Text('Return: ${cardData['RETURN DATE']}'),
+                            ],
                           ),
-                        );
-                      }
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+                          SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('ID: ${cardData['LEAVE ID']}'),
+                              Text('Status: ${cardData['STUDENT MOBILE NUMBER']}'),
+                            ],
+                          ),
+                        ],
+                      ),
+                      onTap: () async {
+                        final connectivityResult = await Connectivity().checkConnectivity();
+                        if (connectivityResult == ConnectivityResult.none) {
+                          utils.showToastMessage("Connect to Internet", context);
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LeaveDetailsView(
+                                leaveid: cardData['LEAVE ID'],
+                                leaveformtype: '',
+                                lecturerRef: studentLeaveRef.doc(cardData['LEAVE ID']).toString(),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  );
+                },
+              ),
+            );
+          }
+        },
       ),
 
-      floatingActionButton: FloatingActionButton(
+
+  floatingActionButton: FloatingActionButton(
         onPressed: () {
           showToast(
             "Apply For Leave",
@@ -143,8 +163,6 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
       String? stream = await sharedPreferences.getSecurePrefsValue("STREAM");
 
       final List<LeaveCardViewData?> leaveCardData = [];
-
-      CollectionReference studentLeaveRef = FirebaseFirestore.instance.collection('/KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo/LEAVE FORMS/');
 
       List<String> documentNames = await firebaseService.getDocuments(studentLeaveRef);
       documentNames.sort((a, b) => b.compareTo(a));

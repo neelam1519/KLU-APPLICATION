@@ -17,15 +17,17 @@ class LecturerLeaveFormsView extends StatefulWidget {
 
 class _LecturerDataState extends State<LecturerLeaveFormsView> {
   int selectedIndex = 0;
-  late String leaveFormType;
+  late String leaveFormType='PENDING';
   late LeaveCardViewData leaveCardViewData;
   FirebaseService firebaseService = FirebaseService();
   SharedPreferences sharedPreferences = SharedPreferences();
   Utils utils=Utils();
   late List<String> yearList=[];
   late List<String> streamList=[];
-  late DocumentReference? detailsRetrievingRef;
+  late DocumentReference? detailsRetrievingRef=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
   late String? section='',branch,year,stream,staffID;
+  late String? yearCoordinatorStream='',yearCoordinatorBranch='',hodBranch='',faYear='',faStream='',faBranch='',faSection='';
+  DocumentReference studentLeaveForms=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
 
   List<String> spinnerOptions1 = [];
   List<String> spinnerOptions2 = [];
@@ -44,6 +46,16 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   }
 
   Future<void> initializeData() async {
+    yearCoordinatorStream=await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
+    yearCoordinatorBranch=await sharedPreferences.getSecurePrefsValue('BRANCH');
+    hodBranch=await sharedPreferences.getSecurePrefsValue('BRANCH');
+    faYear=await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
+    faStream=await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
+    faBranch=await sharedPreferences.getSecurePrefsValue('BRANCH');
+    faSection=await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
+
+    updateRef();
+
     if (widget.privilege == 'HOD') {
       isButtonVisible = true;
       isSpinner1Visible = true;
@@ -61,6 +73,12 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
       print('initializeData $yearList  $streamList');
 
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$hodBranch/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$leaveFormType');
+
+    }else if(widget.privilege == 'FACULTY ADVISOR'){
+
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$faYear/$faBranch/$faStream/$faSection/LEAVE FORMS/$leaveFormType');
+
     }else if (widget.privilege == 'YEAR COORDINATOR') {
       isButtonVisible = true;
       isSpinner1Visible = true;
@@ -75,7 +93,10 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
       spinnerOptions2=yearList;
       selectedSpinnerOption1=streamList[0];
       selectedSpinnerOption2=yearList[0];
+
       print('initializeData $yearList  $selectedSpinnerOption1');
+
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$yearCoordinatorBranch/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$leaveFormType');
 
     } else if (widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
       isButtonVisible = true;
@@ -90,11 +111,48 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
       selectedSpinnerOption2 = section ?? 'SECTION NOT FOUND';
       String? year = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
       yearList = year!.split(',');
+
       print('initializeData: $section $selectedSpinnerOption1 $spinnerOptions1 $spinnerOptions2');
+
+      if(selectedSpinnerOption1=='SECTION'){
+        detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$faYear/$faBranch/$faStream/$selectedSpinnerOption2/LEAVE FORMS/$leaveFormType');
+      }else if(selectedSpinnerOption1=='YEAR COORDINATOR'){
+        detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$yearCoordinatorBranch/YEAR COORDINATOR/$yearCoordinatorStream/LEAVE FORMS/$leaveFormType');
+      }else{
+        utils.showToastMessage('UNABLE TO GET THE REFERENCE DETAILS', context);
+      }
+
     } else {
-      utils.showToastMessage('UNABLE TO GET THE DETAILS', context);
+      utils.showToastMessage('UNABLE TO GET THE SPINNER DETAILS', context);
     }
     setState(() {});
+  }
+
+  void updateRef(){
+    if(widget.privilege=='HOD'){
+
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$hodBranch/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$leaveFormType');
+
+    }else if(widget.privilege=='FACULTY ADVISOR'){
+
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$faYear/$faBranch/$faStream/$faSection/LEAVE FORMS/$leaveFormType');
+
+    }else if(widget.privilege=='YEAR COORDINATOR'){
+
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$yearCoordinatorBranch/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$leaveFormType');
+
+    }else if(widget.privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
+
+      if(selectedSpinnerOption1=='SECTION'){
+        detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$faYear/$faBranch/$faStream/$selectedSpinnerOption2/LEAVE FORMS/$leaveFormType');
+      }else if(selectedSpinnerOption1=='YEAR COORDINATOR'){
+        detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$yearCoordinatorBranch/YEAR COORDINATOR/$yearCoordinatorStream/LEAVE FORMS/$leaveFormType');
+      }else{
+        utils.showToastMessage('UNABLE TO GET THE FA AND YEAR DETAILS', context);
+      }
+    }else{
+      utils.showToastMessage('UNABLE TO GET THE REFERENCE DETAILS', context);
+    }
   }
 
   @override
@@ -110,6 +168,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
               child: DropdownButton<String>(
                 value: selectedSpinnerOption1,
                 onChanged: (String? newValue) {
+                  updateRef();
                   setState(() {
                     selectedSpinnerOption1 = newValue!;
                     //updateSpinner();
@@ -134,6 +193,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
               child: DropdownButton<String>(
                 value: selectedSpinnerOption2,
                 onChanged: (String? newValue) {
+                  updateRef();
                   setState(() {
                     selectedSpinnerOption2 = newValue!;
                   });
@@ -184,22 +244,6 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     );
   }
 
-  void updateSpinner() {
-    if (widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
-      if (selectedSpinnerOption1 == 'SECTION') {
-        isButtonVisible = false;
-        spinnerOptions2.clear();
-        spinnerOptions2.add(section!);
-        selectedSpinnerOption2 = section!;
-      } else if (selectedSpinnerOption1 == 'YEAR COORDINATOR') {
-        isButtonVisible = true;
-        spinnerOptions2.clear();
-        spinnerOptions2 = spinnerOptions2 + yearList;
-        selectedSpinnerOption2 = yearList[0];
-      }
-    }
-  }
-
   void _onItemTapped(int index) {
     setState(() {
       selectedIndex = index;
@@ -209,216 +253,153 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   Widget _buildBody() {
     switch (selectedIndex) {
       case 0:
-        return _buildPendingTab();
+        leaveFormType=='PENDING';
+        updateRef();
+        return buildTab();
       case 1:
-        return _buildAcceptedTab();
+        leaveFormType=='ACCEPTED';
+        updateRef();
+        return buildTab();
       case 2:
-        return _buildRejectedTab();
+        leaveFormType=='REJECTED';
+        updateRef();
+        return buildTab();
       default:
         return Container();
     }
   }
 
-  Widget _buildPendingTab() {
-    leaveFormType='PENDING';
-    return FutureBuilder<List<LeaveCardViewData>>(
-      future: _fetchLeaveData(leaveFormType),
+  Widget buildTab() {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: detailsRetrievingRef!.snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: CircularProgressIndicator(),
-          );
+          return Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
-        } else if (snapshot.hasData && snapshot.data != null) {
-          if (snapshot.data!.isEmpty) {
-            return Center(
-              child: Text(
-                'No $leaveFormType Forms',
-                style: TextStyle(fontSize: 18),
-              ),
-            );
-          }
-          return _displayLeaveData(snapshot.data!,leaveFormType);
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || !snapshot.data!.exists) {
+          return Center(child: Text('No Leave Data Available'));
         } else {
-          return Center(
-            child: Text('No Pending Forms'),
-          );
-        }
-      },
-    );
-  }
+          Map<String, dynamic> leaveCardData = snapshot.data!.data() as Map<String, dynamic>;
 
-  Widget _buildAcceptedTab() {
-    leaveFormType = 'ACCEPTED';
-    return FutureBuilder<List<LeaveCardViewData>>(
-      future: _fetchLeaveData(leaveFormType),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: CircularProgressIndicator(),
-          );
-        } else if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
-        } else if (snapshot.hasData && snapshot.data != null) {
-          if (snapshot.data!.isEmpty) {
-            return Center(
-              child: Text(
-                'No $leaveFormType Forms',
-                style: TextStyle(fontSize: 18),
-              ),
-            );
-          }
-          return _displayLeaveData(snapshot.data!, leaveFormType);
-        } else {
-          return Center(
-            child: Text('No Pending Forms'),
-          );
-        }
-      },
-    );
-  }
+          return FutureBuilder<Map<String, dynamic>>(
+            future: retrieveData(leaveCardData),
+            builder: (context, dataSnapshot) {
+              if (dataSnapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              } else if (dataSnapshot.hasError) {
+                return Center(child: Text('Error: ${dataSnapshot.error}'));
+              } else {
+                Map<String, dynamic> data = dataSnapshot.data!;
+                print('buildTab: ${data.toString()}');
 
-  Widget _buildRejectedTab() {
-    leaveFormType='REJECTED';
-    return FutureBuilder<List<LeaveCardViewData>>(
-      future: _fetchLeaveData(leaveFormType),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: CircularProgressIndicator(),
-          );
-        } else if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
-        } else if (snapshot.hasData && snapshot.data != null) {
-          if (snapshot.data!.isEmpty) {
-            return Center(
-              child: Text(
-                'No $leaveFormType Forms',
-                style: TextStyle(fontSize: 18),
-              ),
-            );
-          }
-          return _displayLeaveData(snapshot.data!,leaveFormType);
-        } else {
-          return Center(
-            child: Text('No Pending Forms'),
-          );
-        }
-      },
-    );
-  }
-
-  Widget _displayLeaveData(List<LeaveCardViewData> leaveCardViewDataList, String leaveformtype) {
-    return ListView.builder(
-      itemCount: leaveCardViewDataList.length,
-      itemBuilder: (context, index) {
-        final leaveCardData = leaveCardViewDataList[index];
-        return Card(
-          child: ListTile(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Start: ${leaveCardData.startdate}'),
-                    Text(" TO "),
-                    Text('Return: ${leaveCardData.returndate}'),
-                  ],
-                ),
-                SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('ID: ${leaveCardData.id}'),
-                    Text('Status: ${leaveCardData.verified}')
-                  ],
-                ),
-              ],
-            ),
-            onTap: () async {
-              // Navigate to leave data screen
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => LeaveDetailsView(
-                    leaveid: leaveCardData.id,
-                    leaveformtype: leaveformtype,
-                    lecturerRef: detailsRetrievingRef!.path,
-                  ),
-                ),
-              );
+                return ListView.builder(
+                  itemCount: data.length,
+                  itemBuilder: (context, index) {
+                    String key = data.keys.elementAt(index);
+                    print('ListView.builder  key=$key');
+                    Map<String, dynamic> value = data[key];
+                    for(MapEntry<String, dynamic> entry in value.entries){
+                      print('ListView.builder  ${entry.key}  ${entry.value}');
+                    }
+                    return Card(
+                      child: ListTile(
+                        title: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Start: ${value['START DATE']}'),
+                                Text(" TO "),
+                                Text('Return: ${value['RETURN DATE']}'),
+                              ],
+                            ),
+                            SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('ID: ${value['LEAVE ID']}'),
+                                Text('Status: ${value['VERIFIED']}'),
+                              ],
+                            ),
+                          ],
+                        ),
+                        onTap: () async {
+                          // Navigate to leave data screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LeaveDetailsView(
+                                leaveid: value['LEAVE ID'],
+                                leaveformtype: leaveFormType,
+                                lecturerRef: detailsRetrievingRef!.path,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                );
+              }
             },
-          ),
-        );
+          );
+        }
       },
     );
   }
 
+  Future<Map<String, dynamic>> retrieveData(Map<String, dynamic> leaveCardData) async {
+    List<String> dataRequired = ['START DATE', 'RETURN DATE', 'LEAVE ID', 'FACULTY ADVISOR APPROVAL', 'YEAR COORDINATOR APPROVAL', 'HOSTEL WARDEN APPROVAL',
+      'FACULTY ADVISOR DECLINED', 'YEAR COORDINATOR DECLINED', 'HOSTEL WARDEN DECLINED',];
+    // Map to store retrieved data
+    Map<String, dynamic> retrievedDataMap = {};
 
-  Future<List<LeaveCardViewData>> _fetchLeaveData(String formType) async {
-    print('fetchLeaveData started');
-    String? yearCoordinatorStream=await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
-    String? yearCoordinatorBranch=await sharedPreferences.getSecurePrefsValue('BRANCH');
-    String? hodBranch=await sharedPreferences.getSecurePrefsValue('BRANCH');
-    String? faYear=await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
-    String? faStream=await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
-    String? faBranch=await sharedPreferences.getSecurePrefsValue('BRANCH');
-    String? faSection=await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
+    for (MapEntry<String, dynamic> entry in leaveCardData.entries) {
+      String key = entry.key;
+      DocumentReference value = entry.value;
+      studentLeaveForms = value.collection('LEAVE FORMS').doc(key);
 
-    if (widget.privilege == 'HOD') {
-      // Handle HOD case
-      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$hodBranch/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$formType');
-    } else if (widget.privilege == 'FACULTY ADVISOR') {
+      // Retrieve data for the current entry
+      Map<String, dynamic>? retrievedData = await firebaseService.getValuesFromDocRef(studentLeaveForms, dataRequired);
+      if (retrievedData != null) {
+        // Get the value for a specific key, for example, 'FACULTY ADVISOR APPROVAL'
+        dynamic facultyAdvisorApproval = retrievedData['FACULTY ADVISOR APPROVAL'];
+        dynamic facultyAdvisorDeclined = retrievedData['FACULTY ADVISOR DECLINED'];
+        dynamic yearCoordinatorApproval = retrievedData['YEAR COORDINATOR APPROVAL'];
+        dynamic yearCoordinatorDeclined = retrievedData['YEAR COORDINATOR DECLINED'];
+        dynamic hostelWardenApproval = retrievedData['HOSTEL WARDEN APPROVAL'];
+        dynamic hostelWardenDeclined = retrievedData['HOSTEL WARDEN DECLINED'];
 
-      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$faYear/$faBranch/$faStream/$faSection/LEAVE FORMS/$formType');
+        bool verified = facultyAdvisorApproval && yearCoordinatorApproval && hostelWardenApproval;
+        bool declined = facultyAdvisorDeclined || yearCoordinatorDeclined || hostelWardenDeclined;
 
-    } else if (widget.privilege == 'YEAR COORDINATOR') {
-
-      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$yearCoordinatorBranch/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$formType');
-
-    } else if (widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
-
-      if(selectedSpinnerOption1=='SECTION'){
-        detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$faYear/$faBranch/$faStream/$selectedSpinnerOption2/LEAVE FORMS/$formType');
-      }else if(selectedSpinnerOption1=='YEAR COORDINATOR'){
-        detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$yearCoordinatorBranch/YEAR COORDINATOR/$yearCoordinatorStream/LEAVE FORMS/$formType');
-      }else{
-        utils.showToastMessage('UNABLE TO GET THE SPINNER DETAILS', context);
+        String verification;
+        if (verified) {
+          verification = "APPROVED";
+        } else if (declined) {
+          if (facultyAdvisorDeclined) {
+            verification = 'FACULTY ADVISOR DECLINED';
+          } else if (yearCoordinatorDeclined) {
+            verification = 'YEAR COORDINATOR DECLINED';
+          } else {
+            verification = 'HOSTEL WARDEN DECLINED';
+          }
+        } else {
+          verification = 'PENDING';
+        }
+        retrievedData.addAll({'VERIFIED': verification});
       }
-
-    } else {
-      utils.showToastMessage('UNABLE TO GET THE DETAILS', context);
+      retrievedDataMap[key] = retrievedData;
     }
-
-    print('detailsRetrievingRef fetchLeaveData: ${detailsRetrievingRef.toString()}');
-
-    DocumentReference studentLeaveForms;
-    List<LeaveCardViewData> listLeaveCardViewData = [];
-
-    Map<String, dynamic> getLeaveDetails = await firebaseService.getMapDetailsFromDoc(detailsRetrievingRef!);
-
-    for (MapEntry<String, dynamic> data in getLeaveDetails.entries) {
-      String key = data.key;
-      DocumentReference value = data.value;
-      studentLeaveForms = value;
-      print('$key : $value');
-      LeaveCardViewData? leaveCardViewData = await firebaseService.getSpecificLeaveData(studentLeaveForms.collection('LEAVE FORMS').doc(key));
-
-      if (leaveCardViewData != null) {
-        listLeaveCardViewData.add(leaveCardViewData);
-      }
+    for(MapEntry<String, dynamic> entry in retrievedDataMap.entries){
+      String key = entry.key;
+      dynamic value = entry.value;
+      print('retrievedDataMap: $key : $value');
     }
-    listLeaveCardViewData.sort((a, b) => a.id.compareTo(b.id));
-
-    print('Lecturer LeaveCardViewData: ${listLeaveCardViewData.toString()}');
-    return listLeaveCardViewData;
+    // Return the map containing all retrieved data
+    return retrievedDataMap;
   }
+
 }

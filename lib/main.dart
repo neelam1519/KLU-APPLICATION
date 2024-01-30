@@ -45,6 +45,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -158,7 +159,7 @@ class MyHomePage extends StatelessWidget {
           SharedPreferences sharedPreferences=SharedPreferences();
           FirebaseService firebaseService=FirebaseService();
 
-          //lecturerorstudent='STAFF';
+          lecturerorstudent='STAFF';
           //utils.showToastMessage(lecturerorstudent, context);
 
           if(lecturerorstudent=='STUDENT'){

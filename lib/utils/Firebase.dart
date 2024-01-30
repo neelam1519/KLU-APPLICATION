@@ -362,19 +362,37 @@ class FirebaseService {
     }
   }
 
-
-  Future<String?> getValueFromDocRef(DocumentReference documentReference, String field) async {
+  Future<Map<String, dynamic>?> getValuesFromDocRef(DocumentReference documentReference, List<String> requiredFieldNames) async {
     try {
       // Get the document snapshot
       DocumentSnapshot snapshot = await documentReference.get();
 
-      // Check if the document exists and if the field exists
-      if (snapshot.exists && snapshot[field] != null) {
-        // Retrieve the value of the specified field
-        dynamic fieldValue = snapshot[field];
-        return fieldValue.toString(); // Assuming the field value is a string
+      // Check if the document exists
+      if (snapshot.exists) {
+        // Cast snapshot.data() to Map<String, dynamic>
+        Map<String, dynamic>? documentData =
+        snapshot.data() as Map<String, dynamic>?;
+
+        // Create a map to store field names and values
+        Map<String, dynamic> fieldValues = {};
+
+        // Check each required field
+        for (String field in requiredFieldNames) {
+          // Check if the field exists in the document data
+          if (documentData != null && documentData.containsKey(field)) {
+            // Retrieve the value of the specified field
+            dynamic fieldValue = snapshot.get(FieldPath([field]));
+            // Add the field name and value to the map
+            fieldValues[field] = fieldValue;
+          } else {
+            // Field doesn't exist in the document
+            fieldValues[field] = null;
+          }
+        }
+
+        return fieldValues;
       } else {
-        // Document or field doesn't exist
+        // Document doesn't exist
         return null;
       }
     } catch (e) {
@@ -383,6 +401,7 @@ class FirebaseService {
       return null;
     }
   }
+
 
   Future<bool> isDocumentExists(CollectionReference collectionReference, String documentName) async {
     try {
