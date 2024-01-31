@@ -73,13 +73,19 @@ class MyAuthenticationCheck extends StatelessWidget {
           );
         } else {
           // If the user is already signed in, redirect to the Home page
-          return snapshot.data != null
-              ? Home(loggedUser: 'STUDENT',)
-              : MyHomePage(title: 'Flutter Demo Home Page');
+          if (snapshot.data != null) {
+            print('AUTHENTICATION USER IS NOT NULL  ${snapshot.data.toString()}');
+            return Home(loggedUser: 'STUDENT');
+          } else {
+            print('AUTHENTICATION: USER IS NULL');
+            // If the user is null, show the login page
+            return MyHomePage(title: 'Flutter Demo Home Page');
+          }
         }
       },
     );
   }
+
 }
 
 class MyHomePage extends StatelessWidget {
@@ -152,7 +158,7 @@ class MyHomePage extends StatelessWidget {
           String? lecturerorstudent=await LecturerORStudent(id);
           DocumentReference documentReference=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
           String? imageurl=user.photoURL;
-          String branch,year,stream,privilege='',name,staffid,section,faname,fastaffid,famailid,slot,mobilenumber;
+          String branch='',year='',stream='',privilege='',name='',staffID='',section,faname,fastaffid,famailid,slot,mobilenumber;
 
           await getImageBytesFromUrl(imageurl);
 
@@ -160,7 +166,6 @@ class MyHomePage extends StatelessWidget {
           FirebaseService firebaseService=FirebaseService();
 
           //lecturerorstudent='STAFF';
-          //utils.showToastMessage(lecturerorstudent, context);
 
           if(lecturerorstudent=='STUDENT'){
             try {
@@ -178,8 +183,7 @@ class MyHomePage extends StatelessWidget {
               String encodedFile = Uri.encodeComponent(file);
               Map<String, String> searchData = {};
 
-              listOfBranches =
-              await utils.moveStringToFirstPlace(listOfBranches, branch);
+              listOfBranches = await utils.moveStringToFirstPlace(listOfBranches, branch);
 
               for (String string in listOfBranches) {
                 String encodedBranch = Uri.encodeComponent(string);
@@ -193,11 +197,14 @@ class MyHomePage extends StatelessWidget {
                   break;
                 }
               }
+
               print('STUDENT EXITED FOR LOOP');
+
               if (details.isEmpty) {
-                utils.showToastMessage('NO DETAILS FOUND CONTACT FACULTY ADVISOR', context);
+                utils.showToastMessage('STUDENT DETAILS NOT FOUND', context);
                 print('DETAILS ARE EMPTY');
-                await GoogleSignIn().disconnect();
+                FirebaseAuth.instance.signOut();
+                GoogleSignIn().disconnect();
                 EasyLoading.dismiss();
                 return;
               }
@@ -214,6 +221,15 @@ class MyHomePage extends StatelessWidget {
               details = await downloadedDetail(encodedFaDetails, 'FACULTY ADVISORS', searchData);
               searchData.clear();
 
+              if(details.isEmpty){
+                utils.showToastMessage('FACULTY ADVISOR DETAILS NOT FOUND', context);
+                print('DETAILS ARE EMPTY');
+                FirebaseAuth.instance.signOut();
+                GoogleSignIn().disconnect();
+                EasyLoading.dismiss();
+                return;
+              }
+
               faname = details['NAME']!;
               famailid = details['MAIL ID']!;
               fastaffid = details['STAFF ID']!;
@@ -221,6 +237,23 @@ class MyHomePage extends StatelessWidget {
               int slotNumber = utils.romanToInteger(romanSlot);
               slot = slotNumber.toString();
               stream = details['STREAM']!;
+
+              // details.clear();
+              // searchData.addAll({'REG NO':id});
+              // details = await downloadedDetail('HOSTEL DETAILS', 'HOSTEL DETAILS', searchData);
+              // searchData.clear();
+              //
+              // if(details.isEmpty){
+              //   utils.showToastMessage('HOSTEL DETAILS NOT FOUND', context);
+              //   print('DETAILS ARE EMPTY');
+              //   GoogleSignIn().disconnect();
+              //   FirebaseAuth.instance.signOut();
+              //   EasyLoading.dismiss();
+              //   return;
+              // }
+              //
+              // String hostelName=details['HOSTEL NAME']!;
+              // String hostelRoomNo=details['ROOM NO']!;
 
               documentReference = FirebaseFirestore.instance.doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$id');
               data.addAll({
@@ -237,16 +270,17 @@ class MyHomePage extends StatelessWidget {
                 'FACULTY ADVISOR MAIL ID': famailid,
                 'FACULTY ADVISOR STAFF ID': fastaffid,
                 'SLOT': slot,
-                'HOSTEL NAME': 'BHARATHI HOSTEL',
+                'HOSTEL NAME': 'BHARATHI MENS HOSTEL',
+                'HOSTEL TYPE': 'NORMAL',
                 'HOSTEL ROOM NUMBER': '215'
               });
 
-              utils.showToastMessage(data.toString(), context);
             }catch(e){
               utils.showToastMessage('ERROR OCCURED CONTACT DEVELOPER', context);
               print('STUDENT: ${e.toString()}');
               utils.exceptions(e, 'STUDENT');
-              await GoogleSignIn().disconnect();
+              GoogleSignIn().disconnect();
+              FirebaseAuth.instance.signOut();
               EasyLoading.dismiss();
               return;
             }
@@ -254,20 +288,23 @@ class MyHomePage extends StatelessWidget {
           }else if(lecturerorstudent=='STAFF'){
             try {
               print('STAFF LOGGING IN');
-              String name, staffID, branch, mobileNumber, yearCoordinatorStream,
-                  yearCoordinatorYear, facultyAdvisorStream,
-                  facultyAdvisorSection, facultyAdvisorYear, slot;
+              String name='', staffID='', branch='', mobileNumber='', yearCoordinatorStream='',
+                  yearCoordinatorYear='', facultyAdvisorStream='',
+                  facultyAdvisorSection='', facultyAdvisorYear='', slot='';
 
               Map<String, String> adminDetails = {};
+              Map<String, String> faDetails = {};
+              Map<String, String> hostelWardenDetails = {};
+
               Map<String, String> searchData = {};
 
               searchData.addAll({'MAIL ID': email});
               adminDetails =
               await downloadedDetail('ADMINS', 'ADMINS', searchData);
 
-              Map<String, String> faDetails = {};
               faDetails =
               await downloadedDetail('FA DETAILS', 'FA DETAILS', searchData);
+              searchData.clear();
 
               if (adminDetails.isNotEmpty && faDetails.isNotEmpty) {
                 print('FACULTY ADVISOR AND YEAR COORDINATOR');
@@ -376,50 +413,73 @@ class MyHomePage extends StatelessWidget {
                     'HOD YEAR': year,
                     'HOD STREAM': stream,
                   });
-                } else {
-                  utils.showToastMessage('UnNamed data found', context);
-                  return;
                 }
-              } else {
-                utils.showToastMessage(
-                    'You are not authorized to acess ', context);
-                await GoogleSignIn().disconnect();
-                EasyLoading.dismiss();
-                return;
               }
 
-              utils.showToastMessage(data.toString(), context);
+              if(adminDetails.isEmpty && faDetails.isEmpty){
+                searchData.addAll({'MAIL ID': email});
+                print('Email : $email');
+                hostelWardenDetails = await downloadedDetail('HOSTEL WARDENS', 'HOSTEL WARDENS', searchData);
+                searchData.clear();
 
-              documentReference = FirebaseFirestore.instance.doc(
-                  'KLU/STAFF DETAILS/$branch/$staffID');
+                if(hostelWardenDetails.isNotEmpty){
+                  print('HOSTEL WARDEN');
+                  privilege='HOSTEL WARDEN';
+                  String hostelName=hostelWardenDetails['HOSTEL NAME']!;
+                  String hostelFloorNumber=hostelWardenDetails['FLOOR']!;
+                  String wardenName=hostelWardenDetails['NAME']!;
+                  String hostelType=hostelWardenDetails['TYPE']!;
+                  data.addAll({'NAME':wardenName,'HOSTEL NAME':hostelName,'HOSTEL FLOOR':hostelFloorNumber,'PRIVILEGE':privilege,'HOSTEL TYPE': hostelType,'MAIL ID': email});
+
+                  documentReference=FirebaseFirestore.instance.doc('KLU/HOSTELS STAFF DETAILS/$hostelName/$hostelFloorNumber');
+                  print('Hostel warden details: ${documentReference.path}');
+                }else{
+                  utils.showToastMessage('Your details not found contact ADMINISTRATOR', context);
+                  GoogleSignIn().disconnect();
+                  FirebaseAuth.instance.signOut();
+                  EasyLoading.dismiss();
+                  return;
+                }
+              }else if(adminDetails.isNotEmpty || faDetails.isNotEmpty){
+                documentReference = FirebaseFirestore.instance.doc('KLU/STAFF DETAILS/$branch/$staffID');
+              }
+              
             }catch(e){
               utils.showToastMessage('ERROR OCCURED CONTACT DEVELOPER', context);
               utils.exceptions(e, 'STUDENT');
-              await GoogleSignIn().disconnect();
+              GoogleSignIn().disconnect();
+              FirebaseAuth.instance.signOut();
               EasyLoading.dismiss();
               return;
             }
 
           }else{
             utils.showToastMessage('Unknown Login', context);
-            await GoogleSignIn().disconnect();
+            GoogleSignIn().disconnect();
+            FirebaseAuth.instance.signOut();
             EasyLoading.dismiss();
             return;
           }
+          if(user!=null) {
+            print(data);
 
-          print(data);
+            await firebaseService.uploadMapDetailsToDoc(
+                documentReference, data);
+            await sharedPreferences.storeMapValuesInSecureStorage(data);
+            await utils.clearTemporaryDirectory();
 
-          await firebaseService.uploadMapDetailsToDoc(documentReference, data);
-          await sharedPreferences.storeMapValuesInSecureStorage(data);
-          await utils.clearTemporaryDirectory();
-
-          EasyLoading.dismiss();
-          Navigator.pop(context);
-          Navigator.push(context, MaterialPageRoute(builder: (context) => Home(loggedUser:privilege)));
+            EasyLoading.dismiss();
+            Navigator.pop(context);
+            Navigator.push(context, MaterialPageRoute(
+                builder: (context) => Home(loggedUser: privilege)));
+          }else{
+            utils.showToastMessage('DISCONNECTED', context);
+          }
 
           print("Redirecting to home page");
         } else {
-          await GoogleSignIn().disconnect();
+          GoogleSignIn().disconnect();
+          FirebaseAuth.instance.signOut();
           EasyLoading.dismiss();
           utils.showToastMessage("Login with KLU mail only", context);
         }
@@ -467,119 +527,6 @@ class MyHomePage extends StatelessWidget {
     }
   }
 
-
-
-  Future<String?> getPrivilege(String email) async {
-    // Check in ADMINS
-    DocumentReference adminsRef = FirebaseFirestore.instance.doc('KLU_DETAILS/ADMINS');
-    bool adminsExists = await adminsRef.get().then((snapshot) => snapshot.exists);
-
-    if (adminsExists) {
-      Map<String, dynamic>? adminsData = (await adminsRef.get()).data() as Map<String, dynamic>?;
-
-      if (adminsData != null && adminsData[email] != null) {
-        return 'ADMIN';
-      }
-    }
-
-    // Check in HOSTEL WARDENS
-    DocumentReference wardensRef = FirebaseFirestore.instance.doc('KLU_DETAILS/HOSTELS');
-    bool wardensExists = await wardensRef.get().then((snapshot) => snapshot.exists);
-
-    if (wardensExists) {
-      Map<String, dynamic>? wardensData = (await wardensRef.get()).data() as Map<String, dynamic>?;
-
-      if (wardensData != null && wardensData[email] != null) {
-
-        return 'HOSTEL WARDEN';
-      }
-    }
-
-    // Check in LECTURERS
-    DocumentReference lecturerRef = FirebaseFirestore.instance.doc('KLU_DETAILS/STAFF_DETAILS');
-    bool lecturerExists = await lecturerRef.get().then((snapshot) => snapshot.exists);
-
-    if (lecturerExists) {
-      Map<String, dynamic>? lecturerData = (await lecturerRef.get()).data() as Map<String, dynamic>?;
-
-      if (lecturerData != null && lecturerData[email] != null) {
-        return 'LECTURER';
-      }
-    }
-
-    // Not found in any of the above, assume STUDENT
-    return 'STUDENT';
-  }
-
-  Future<void> getHostelWardenDetails(String email) async {
-    FirebaseService firebaseService = FirebaseService();
-    SharedPreferences sharedPreferences = SharedPreferences();
-
-    List<String> hostelNames = ['BHARATHI MENS HOSTEL', 'BHAGATH SINGH HOSTEL', 'NELSON MANDELA HOSTEL'];
-    DocumentReference documentReference = FirebaseFirestore.instance.doc('KLU_DETAILS/HOSTELS');
-
-    for (String hostelName in hostelNames) {
-      CollectionReference collectionReference = documentReference.collection(hostelName);
-      print("Hostel Warden Details for $hostelName");
-
-      List<String> floors = await firebaseService.getDocuments(collectionReference);
-      for (String floor in floors) {
-        print("Floors: $floors");
-        DocumentReference floorRef = collectionReference.doc(floor);
-        Map<String, dynamic> wardenDetails = await firebaseService.getMapDetailsFromDoc(floorRef);
-        List<String> emails = wardenDetails.keys.toList();
-        print("Floor: $floor");
-
-        if (emails.contains(email)) {
-          sharedPreferences.storeValueInSecurePrefs('HOSTEL NAME', hostelName);
-          sharedPreferences.storeValueInSecurePrefs('HOSTEL FLOOR NUMBER', floor);
-
-          print('HOSTEL WARDEN DETAILS: $hostelName - $floor');
-          return; // Exit the function once the details are found
-        }
-      }
-    }
-
-    // If the email is not found in any hostel, you can handle it here
-    print('Email not found in any hostel.');
-  }
-
-
-  Future<String?> findLoggedInUser(String email,String privilege) async {
-    try {
-      DocumentReference documentReference;
-      if(privilege=='HOSTEL WARDEN'){
-        documentReference = FirebaseFirestore.instance.doc('/KLU_DETAILS/HOSTELS');
-      }else{
-        documentReference = FirebaseFirestore.instance.doc('/KLU_DETAILS/STAFF_DETAILS');
-      }
-      FirebaseService firebaseService = FirebaseService();
-
-      Map<String, dynamic> data = await firebaseService.getMapDetailsFromDoc(documentReference);
-
-      for (String key in data.keys) {
-        print('Key: $key, Value: ${data[key]}');
-        if (key.toLowerCase() == email.toLowerCase()) {
-          return data[key];
-        }
-      }
-      return null;
-    } catch (error) {
-      print('Error retrieving document: $error');
-      return null;
-    }
-  }
-
-  String rename(String? input) {
-    // Check if the input is null, and provide a default value if it is
-    input ??= "";
-
-    // Find the index of "20" in the input string
-    int index = input.indexOf("20");
-
-    // Remove the substring after "20"
-    return index != -1 ? input.substring(0, index).trim() : input;
-  }
 
   String getRegNo(String email) {
     // Split the email address using '@'

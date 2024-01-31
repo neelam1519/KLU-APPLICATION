@@ -28,7 +28,8 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   late List<String> streamList = [];
   late DocumentReference? detailsRetrievingRef=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
   late String? section, branch, year, stream, staffID;
-  late String? yearCoordinatorStream='', yearCoordinatorBranch='', hodBranch='', faYear='', faStream='', faBranch='', faSection='',yearCoordinatorYear='';
+  late String? yearCoordinatorStream='', yearCoordinatorBranch='', hodBranch='', faYear='', faStream='', faBranch='', faSection='',yearCoordinatorYear='',hostelName='',
+      hostelFloor='',hostelType='';
   DocumentReference studentLeaveForms = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
 
   List<String> spinnerOptions1 = [];
@@ -59,6 +60,9 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     faStream = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
     faBranch = await sharedPreferences.getSecurePrefsValue('BRANCH');
     faSection = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
+    hostelName = await sharedPreferences.getSecurePrefsValue('HOSTEL NAME');
+    hostelFloor = await sharedPreferences.getSecurePrefsValue('HOSTEL FLOOR');
+    hostelType = await sharedPreferences.getSecurePrefsValue('HOSTEL TYPE');
 
     print('test privilege: ${widget.privilege}');
 
@@ -77,7 +81,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
       selectedSpinnerOption1 = streamList.isNotEmpty ? streamList[0] : '';
       selectedSpinnerOption2 = yearList.isNotEmpty ? yearList[0] : '';
 
-    } else if(widget.privilege == 'FACULTY ADVISOR'){
+    } else if(widget.privilege == 'FACULTY ADVISOR' || widget.privilege=='HOSTEL WARDEN'){
 
     } else if(widget.privilege == 'YEAR COORDINATOR') {
       isButtonVisible = true;
@@ -94,13 +98,12 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
       selectedSpinnerOption2 = yearList.isNotEmpty ? yearList[0] : '';
 
     } else if (widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
-      isButtonVisible = true;
       isSpinner1Visible = true;
       isSpinner2Visible = true;
 
       section = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
 
-      spinnerOptions1 = ['SECTION', 'YEAR COORDINATOR($yearCoordinatorBranch)'];
+      spinnerOptions1 = ['SECTION', 'YEAR COORDINATOR'];
       selectedSpinnerOption1 = 'SECTION';
 
       spinnerOptions2 = [section ?? 'SECTION NOT FOUND'];
@@ -115,17 +118,18 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
   void updateRef() {
     try {
-      print('testRef: ${detailsRetrievingRef.toString()}');
       print('updateRef');
 
       if (widget.privilege == 'HOD') {
         detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$hodBranch/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$leaveFormType');
       } else if (widget.privilege == 'FACULTY ADVISOR') {
         print('entered faculty advisor');
-        detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/${faYear ?? 'year'}/${faBranch ?? 'branch'}/${faStream ?? 'stream'}/${faSection ?? 'section'}/LEAVE FORMS/${leaveFormType ?? 'formType'}');
+        detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$faYear/$faBranch/$faStream/$faSection/LEAVE FORMS/$leaveFormType}');
         print('detailRetrievingRef test: ${detailsRetrievingRef!.path}');
-      } else if (widget.privilege == 'YEAR COORDINATOR') {
-        detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/${yearCoordinatorBranch ?? 'branch'}/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$leaveFormType');
+      } else if(widget.privilege=='HOSTEL WARDEN'){
+        detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/$hostelFloor/$leaveFormType');
+      }else if (widget.privilege == 'YEAR COORDINATOR') {
+        detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$yearCoordinatorBranch/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$leaveFormType');
       } else if (widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
         if (selectedSpinnerOption1 == 'SECTION') {
           detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/${faYear ?? 'year'}/${faBranch ?? 'branch'}/${faStream ?? 'stream'}/${selectedSpinnerOption2 ?? 'option2'}/LEAVE FORMS/$leaveFormType');
@@ -187,7 +191,6 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
                   updateRef();
                   setState(() {
                     selectedSpinnerOption2 = newValue!;
-                    updateSpinner();
                   });
                 },
                 items: spinnerOptions2.map<DropdownMenuItem<String>>((String value) {
@@ -240,25 +243,56 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   }
 
 
-  Future<void> acceptAllForms() async{
-    if(widget.privilege=='YEAR COORDINATOR' || widget.privilege=='HOD'){
-      Map<String,dynamic> formRef=await firebaseService.getMapDetailsFromDoc(detailsRetrievingRef!);
-      for(MapEntry<String,dynamic> entry in formRef.entries){
-        String key=entry.key;
-        DocumentReference value=entry.value;
-        await firebaseService.updateBooleanField(value.collection('LEAVE FORMS').doc(key), 'YEAR COORDINATOR APPROVAL', true);
-        await firebaseService.deleteField(detailsRetrievingRef!, key);
-        List<String> pathSegments = detailsRetrievingRef!.path.split('/');
-        pathSegments.removeLast();
-        String collectionPath = pathSegments.join('/');
-        CollectionReference collectionRef = FirebaseFirestore.instance.collection(collectionPath);
-        await firebaseService.storeDocumentReference(collectionRef.doc('ACCEPTED'), key, value);
+  Future<void> acceptAllForms() async {
+    try {
+      if (widget.privilege == 'YEAR COORDINATOR' || widget.privilege == 'HOD' || widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
+        utils.showDefaultLoading();
+        // Assuming detailsRetrievingRef is a DocumentReference
+        CollectionReference collectionReference = await utils.DocumentToCollection(detailsRetrievingRef!);
+
+        // Get the pending forms
+        Map<String, dynamic> formRef = await firebaseService.getMapDetailsFromDoc(collectionReference.doc('PENDING'));
+
+        // Loop through each form
+        for (MapEntry<String, dynamic> entry in formRef.entries) {
+          String key = entry.key;
+          DocumentReference value = entry.value;
+
+          // Update YEAR COORDINATOR APPROVAL to true
+          await firebaseService.updateBooleanField(value.collection('LEAVE FORMS').doc(key), 'YEAR COORDINATOR APPROVAL', true);
+
+          // Move the form to ACCEPTED collection
+          await firebaseService.storeDocumentReference(collectionReference.doc('ACCEPTED'), key, value);
+
+          // Get required fields
+          List<String> requiredFieldNames = [
+            'HOSTEL NAME',
+            'HOSTEL ROOM NUMBER',
+            'HOSTEL TYPE'
+          ];
+          Map<String, dynamic>? userDetails = await firebaseService.getValuesFromDocRef(value, requiredFieldNames);
+
+          // Extract required fields
+          String hostelName = userDetails!['HOSTEL NAME'];
+          String hostelType = userDetails['HOSTEL TYPE'];
+          String hostelFloor = userDetails['HOSTEL ROOM NUMBER'];
+
+          // Move the form to HOSTEL PENDING collection
+          DocumentReference hostelRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/${hostelFloor.substring(0, 1)}/PENDING');
+          await firebaseService.storeDocumentReference(hostelRef, key, value);
+
+          // Delete the form from the original collection
+          await firebaseService.deleteField(detailsRetrievingRef!, key);
+        }
+      } else {
+        utils.showToastMessage('You are not authorized to accept all', context);
       }
-    }else{
-      utils.showToastMessage('you are not authorized to accept all', context);
+    } catch (e) {
+      utils.showToastMessage('Error occurred while accepting. Contact developer.', context);
     }
     EasyLoading.dismiss();
   }
+
 
   Future<void> showAlertDialog(BuildContext context) async{
     // Show the alert dialog
@@ -272,7 +306,6 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
             TextButton(
               onPressed: () async {
                 // Handle the "OK" button press
-                utils.showDefaultLoading();
                 await acceptAllForms();
                 Navigator.of(context).pop(); // Close the dialog
                 // Add your logic for the "OK" action here
@@ -309,10 +342,12 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   void updateSpinner(){
     if(widget.privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
       if(selectedSpinnerOption1=='SECTION'){
+        isButtonVisible=false;
         spinnerOptions2.clear();
         spinnerOptions2.add(section!);
         selectedSpinnerOption2 = section ?? 'SECTION NOT FOUND';
-      }else if(selectedSpinnerOption1=='YEAR COORDINATOR($yearCoordinatorBranch)'){
+      }else if(selectedSpinnerOption1=='YEAR COORDINATOR'){
+        isButtonVisible=true;
         spinnerOptions2.clear();
         yearList = yearCoordinatorYear!.split(',');
         yearList.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
@@ -321,7 +356,6 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
       }
     }
   }
-
 
   Widget buildTab() {
     return StreamBuilder<DocumentSnapshot>(
@@ -421,6 +455,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
                                 leaveid: value['LEAVE ID'],
                                 leaveformtype: leaveFormType,
                                 lecturerRef: detailsRetrievingRef!.path,
+                                type: selectedSpinnerOption1,
                               ),
                             ),
                           );

@@ -69,7 +69,7 @@ class _UserAccountState extends State<UserAccount> {
   }
 
   Future<Map<String, dynamic>> getUserDetails() async {
-    String? branch, year, stream, staffID, regNo, privilege;
+    String? branch, year, stream, staffID, regNo, privilege,hostelName,hostelType,hostelFloor;
     DocumentReference detailsRetrievingRef = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
 
     year = await sharedPreferences.getSecurePrefsValue("YEAR");
@@ -78,6 +78,9 @@ class _UserAccountState extends State<UserAccount> {
     staffID = await sharedPreferences.getSecurePrefsValue("STAFF ID");
     privilege = await sharedPreferences.getSecurePrefsValue("PRIVILEGE");
     stream = await sharedPreferences.getSecurePrefsValue("STREAM");
+    hostelType = await sharedPreferences.getSecurePrefsValue("HOSTEL TYPE");
+    hostelFloor = await sharedPreferences.getSecurePrefsValue("HOSTEL FLOOR");
+    hostelName = await sharedPreferences.getSecurePrefsValue("HOSTEL NAME");
 
     if (privilege == 'STUDENT') {
       detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo');
@@ -86,9 +89,9 @@ class _UserAccountState extends State<UserAccount> {
         privilege == 'YEAR COORDINATOR' ||
         privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR' ||
         privilege == 'HOD') {
-      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/STAFF DETAILS/$staffID');
-    } else {
-      utils.showToastMessage('UNABLE TO GET THE REFERENCE DETAILS', context);
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/STAFF DETAILS/$branch/$staffID');
+    } else if(privilege=='HOSTEL WARDEN'){
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS STAFF DETAILS/$hostelName/$hostelFloor');
     }
     print('accountDocRef: ${detailsRetrievingRef.path}');
 

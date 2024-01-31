@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -162,5 +163,19 @@ class Utils {
   Future<void> clearSecureStorage() async {
     final FlutterSecureStorage secureStorage = FlutterSecureStorage();
     await secureStorage.deleteAll();
+  }
+
+
+  Future<CollectionReference> DocumentToCollection(DocumentReference documentReference) async {
+    List<String> pathSegments = documentReference.path.split('/');
+
+    // Remove the last segment (document ID)
+    pathSegments.removeLast();
+
+    // Reconstruct the path without the last segment
+    String collectionPath = pathSegments.join('/');
+
+    // Get the Firestore instance and return the new CollectionReference
+    return FirebaseFirestore.instance.collection(collectionPath);
   }
 }

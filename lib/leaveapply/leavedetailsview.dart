@@ -11,7 +11,8 @@ class LeaveDetailsView extends StatefulWidget {
   final String leaveid;
   final String leaveformtype;
   final String lecturerRef;
-  LeaveDetailsView({required this.leaveid, required this.leaveformtype, required this.lecturerRef});
+  final String type;
+  LeaveDetailsView({required this.leaveid, required this.leaveformtype, required this.lecturerRef,required this.type});
   @override
   _LeaveDataState createState() => _LeaveDataState();
 }
@@ -27,6 +28,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
   String? privilege;
   late DocumentReference lecturerReference;
   List<String> details=[];
+  Map<String, dynamic> studentLeaveDetails = {};
 
   @override
   void initState() {
@@ -48,7 +50,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
   @override
   Widget build(BuildContext context) {
     List<String> orderOfDetails = ['LEAVE ID', 'START DATE', 'RETURN DATE', 'REGISTRATION NUMBER', 'NAME', 'YEAR', 'BRANCH', 'STREAM', 'SECTION',
-      'FACULTY ADVISOR STAFF ID', 'STUDENT MOBILE NUMBER', 'PARENTS MOBILE NUMBER', 'REASON', 'HOSTEL NAME', 'HOSTEL ROOM NUMBER', 'FACULTY ADVISOR MAIL',
+      'FACULTY ADVISOR STAFF ID', 'STUDENT MOBILE NUMBER', 'PARENTS MOBILE NUMBER', 'REASON', 'HOSTEL NAME', 'HOSTEL ROOM NUMBER', 'FACULTY ADVISOR MAIL ID',
       'FACULTY ADVISOR APPROVAL', 'YEAR COORDINATOR APPROVAL', 'HOSTEL WARDEN APPROVAL', 'VERIFICATION STATUS'];
 
     return Scaffold(
@@ -102,14 +104,18 @@ class _LeaveDataState extends State<LeaveDetailsView> {
                         Text('Accept'), // Text for the accept button
                       ],
                     ),
-                  if (shouldShowDelete())
+                  if (shouldShowDeleteButton)
                     Column(
                       children: [
                         IconButton(
                           icon: Icon(Icons.delete),
                           onPressed: () {
                             // Handle delete button press
+                            if(!shouldShowDelete()){
                               deleteDetails(context);
+                            }else{
+                              utils.showToastMessage('You cant delete the accepted form', context);
+                            }
                           },
                         ),
                         Text('Delete'), // Text for the delete button
@@ -142,16 +148,18 @@ class _LeaveDataState extends State<LeaveDetailsView> {
     print('onAccept: ');
     try {
       utils.showDefaultLoading();
-      CollectionReference leaveRef=FirebaseFirestore.instance.collection(documentToCollection(widget.lecturerRef));
+      CollectionReference leaveRef=await utils.DocumentToCollection(lecturerReference);
       DocumentReference redirectingRef=FirebaseFirestore.instance.doc('KLU/CONFIRMED DETAILS');
       DocumentReference? value;
       String field='';
       String? faYear = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
       String? faStream = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
       String? faBranch = await sharedPreferences.getSecurePrefsValue('BRANCH');
-      String? faSection = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
-      String? yearCoordinatorStream=await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
-      String? yearCoordinatorBranch=await sharedPreferences.getSecurePrefsValue('BRANCH');
+      String? hostelName=studentLeaveDetails['HOSTEL NAME'];
+      String? hostelFloor=studentLeaveDetails['HOSTEL ROOM NUMBER'];
+      String? hostelType=studentLeaveDetails['HOSTEL TYPE'];
+
+      String verified='PENDING';
 
       if(privilege=='FACULTY ADVISOR') {
 
@@ -159,10 +167,23 @@ class _LeaveDataState extends State<LeaveDetailsView> {
         print('onAccept ${redirectingRef.toString()}');
         field='FACULTY ADVISOR APPROVAL';
 
-      }else if(privilege=='YEAR COORDINATOR'){
-        redirectingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$faYear/$faBranch/YEAR COORDINATOR/$faStream/LEAVE FORMS/PENDING');
+      }else if(privilege=='YEAR COORDINATOR' || privilege=='HOD'){
+        redirectingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/${hostelFloor!.substring(0,1)}/PENDING');
         print('onAccept ${redirectingRef.toString()}');
-        field='FACULTY ADVISOR APPROVAL';
+        field='YEAR COORDINATOR APPROVAL';
+      }else if(privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
+        if(widget.type=='SECTION'){
+          redirectingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$faYear/$faBranch/YEAR COORDINATOR/$faStream/LEAVE FORMS/PENDING');
+          print('onAccept ${redirectingRef.toString()}');
+          field='FACULTY ADVISOR APPROVAL';
+        }else if(widget.type=='YEAR COORDINATOR'){
+          redirectingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/${hostelFloor!.substring(0,1)}/PENDING');
+          print('onAccept ${redirectingRef.toString()}');
+          field='YEAR COORDINATOR APPROVAL';
+        }
+      }else if(privilege=='HOSTEL WARDEN'){
+        field='HOSTEL WARDEN APPROVAL';
+        verified='APPROVED';
       }
 
       value = await firebaseService.getDocumentReferenceFieldValue(leaveRef.doc('PENDING'), widget.leaveid);
@@ -171,6 +192,9 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       await firebaseService.deleteField(leaveRef.doc('PENDING'), widget.leaveid);
       await firebaseService.updateBooleanField(value.collection('LEAVE FORMS').doc(widget.leaveid),field, true);
       await firebaseService.storeDocumentReference(redirectingRef, widget.leaveid, value);
+      Map<String,String> dataVerification={};
+      dataVerification.addAll({'VERIFICATION': verified});
+      await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVE FORMS').doc(widget.leaveid), dataVerification);
 
       Navigator.pop(context);
 
@@ -184,44 +208,47 @@ class _LeaveDataState extends State<LeaveDetailsView> {
     }
   }
 
-  String documentToCollection(String document){
-    List<String> pathSegments = document.split('/');
-    pathSegments.removeLast();
-    String newPath = pathSegments.join('/');
-    return newPath;
-  }
-
   Future<void> onReject() async{
     print('onReject: ');
     try {
       utils.showDefaultLoading();
-      String? staffid = await sharedPreferences.getSecurePrefsValue("STAFF ID");
-      String? privilege=await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
-
-      CollectionReference leaveRef=FirebaseFirestore.instance.collection('KLU');
       DocumentReference? value;
+      CollectionReference collectionReference=await utils.DocumentToCollection(lecturerReference);
       String field='';
 
-      if(privilege=='FACULTY ADVISOR'){
-        String? faYear = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
-        String? faStream = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
-        String? faBranch = await sharedPreferences.getSecurePrefsValue('BRANCH');
-        String? faSection = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
+      if(privilege=='FACULTY ADVISOR') {
 
-        leaveRef = FirebaseFirestore.instance.collection('KLU/CLASS ROOM DETAILS/$faYear/$faBranch/$faStream/$faSection/LEAVE FORMS/');
         field='FACULTY ADVISOR DECLINED';
+
+      }else if(privilege=='YEAR COORDINATOR' || privilege=='HOD'){
+
+        field='FACULTY ADVISOR DECLINED';
+
+      }else if(privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
+        if(widget.type=='SECTION'){
+
+          field='FACULTY ADVISOR DECLINED';
+
+        }else if(widget.type=='YEAR COORDINATOR'){
+
+          field='FACULTY ADVISOR DECLINED';
+
+        }
+      }else if(privilege=='HOSTEL WARDEN'){
+
+        field='HOSTEL WARDEN APPROVAL';
+
       }else{
-        utils.showToastMessage('AN ERROR OCCURED', context);
+        utils.showToastMessage('Error occured while rejecting', context);
+        return;
       }
 
-      value = await firebaseService.getDocumentReferenceFieldValue(leaveRef.doc('PENDING'), widget.leaveid);
-      await firebaseService.storeDocumentReference(leaveRef.doc('REJECTED'), widget.leaveid, value!);
-      await firebaseService.deleteField(leaveRef.doc('PENDING'), widget.leaveid);
+      value = await firebaseService.getDocumentReferenceFieldValue(collectionReference.doc('PENDING'), widget.leaveid);
+      await firebaseService.storeDocumentReference(collectionReference.doc('REJECTED'), widget.leaveid, value!);
+      await firebaseService.deleteField(collectionReference.doc('PENDING'), widget.leaveid);
       await firebaseService.updateBooleanField(value.collection('LEAVE FORMS').doc(widget.leaveid), field, true);
 
       Navigator.pop(context);
-      Navigator.pop(context);
-      Navigator.push(context, MaterialPageRoute(builder: (context) => LecturerLeaveFormsView(privilege: privilege,)));
       EasyLoading.dismiss();
 
     } catch (e) {
@@ -234,16 +261,15 @@ class _LeaveDataState extends State<LeaveDetailsView> {
   }
 
   bool shouldShowDelete() {
-    bool facultyAdvisorApproval = totalLeaveDetails['FACULTY ADVISOR APPROVAL'] == 'true';
-    bool yearCoordinatorApproval = totalLeaveDetails['YEAR COORDINATOR APPROVAL'] == 'true';
-    bool hostelWardenApproval = totalLeaveDetails['HOSTEL WARDEN APPROVAL'] == 'true';
-    bool facultyAdvisorDecline = totalLeaveDetails['FACULTY ADVISOR DECLINE'] == 'true';
-    bool yearCoordinatorDecline = totalLeaveDetails['YEAR COORDINATOR DECLINE'] == 'true';
-    bool hostelWardenDecline = totalLeaveDetails['HOSTEL WARDEN DECLINE'] == 'true';
+    dynamic faApproval = studentLeaveDetails['FACULTY ADVISOR APPROVAL'] ?? false;
+    dynamic faDecline = studentLeaveDetails['FACULTY ADVISOR DECLINED'] ?? false;
+    dynamic yearCoordinatorApproval = studentLeaveDetails['YEAR COORDINATOR APPROVAL'] ?? false;
+    dynamic yearCoordinatorDecline = studentLeaveDetails['YEAR COORDINATOR DECLINED'] ?? false;
+    dynamic hostelWardenDecline = studentLeaveDetails['HOSTEL WARDEN DECLINED'] ?? false;
+    dynamic hostelWardenApproval = studentLeaveDetails['HOSTEL WARDEN APPROVAL'] ?? false;
 
-    return !(facultyAdvisorApproval || yearCoordinatorApproval || hostelWardenApproval) &&
-        !(facultyAdvisorDecline || yearCoordinatorDecline || hostelWardenDecline) &&
-        privilege == 'STUDENT';
+    return faApproval || yearCoordinatorApproval || hostelWardenApproval ||
+        faDecline || yearCoordinatorDecline || hostelWardenDecline;
   }
 
   Future<Map<String,dynamic>> getLeaveDetails() async {
@@ -259,7 +285,6 @@ class _LeaveDataState extends State<LeaveDetailsView> {
 
       Map<String, dynamic> studentDetails = {};
       Map<String, dynamic> leaveDetails = {};
-      Map<String, dynamic> studentLeaveDetails = {};
 
       print('PRIVILAGE :$privilege');
       print('lecturerRef: $lecturerReference');
@@ -362,5 +387,4 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       utils.showToastMessage("Problem in deleting", context);
     }
   }
-
 }

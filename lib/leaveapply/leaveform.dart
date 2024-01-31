@@ -161,7 +161,7 @@ class _LeaveFormState extends State<LeaveForm> {
 
     data.addAll({'LEAVE ID': leavecount,'PARENTS MOBILE NUMBER': parentMobileNumber,'STUDENT MOBILE NUMBER': studentMobileNumber,
       'REASON': reason,'START DATE': startdate,'RETURN DATE':enddate,'FACULTY ADVISOR APPROVAL': false,'YEAR COORDINATOR APPROVAL':false,
-      'HOSTEL WARDEN APPROVAL' :false,'FACULTY ADVISOR DECLINED' :false, 'YEAR COORDINATOR DECLINED' : false,'HOSTEL WARDEN DECLINED' : false});
+        'HOSTEL WARDEN APPROVAL' :false,'FACULTY ADVISOR DECLINED' :false, 'YEAR COORDINATOR DECLINED' : false,'HOSTEL WARDEN DECLINED' : false,'VERIFICATION':'PENDING'});
 
     CollectionReference studentPendingRef=FirebaseFirestore.instance.collection('/$COLLECTION_NAME/STUDENT DETAILS/$year/$branch/$stream/$regNo/LEAVE FORMS');
 
@@ -180,7 +180,6 @@ class _LeaveFormState extends State<LeaveForm> {
 
     utils.showToastMessage("The Leave Form is Sent to Faculty Advisor ${faName!.toUpperCase()} For approval", context);
 
-    EasyLoading.dismiss();
   }
 
   Future<void> selectDate(BuildContext context, TextEditingController controller, bool isStartDate) async {
