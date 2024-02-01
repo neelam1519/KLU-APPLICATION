@@ -165,7 +165,7 @@ class MyHomePage extends StatelessWidget {
           SharedPreferences sharedPreferences=SharedPreferences();
           FirebaseService firebaseService=FirebaseService();
 
-          //lecturerorstudent='STAFF';
+          lecturerorstudent='STAFF';
 
           if(lecturerorstudent=='STUDENT'){
             try {
@@ -189,7 +189,7 @@ class MyHomePage extends StatelessWidget {
                 String encodedBranch = Uri.encodeComponent(string);
                 String location = '$encodedYear%2F$encodedBranch%2F$encodedFile';
                 print('Location: ${location.toString()}');
-                searchData.addAll({'REG NO': id});
+                searchData.addAll({'REG NO': id.trim()});
                 details = await downloadedDetail(location, 'STUDENTS LIST', searchData);
                 searchData.clear();
                 if (details.isNotEmpty) {
@@ -211,14 +211,11 @@ class MyHomePage extends StatelessWidget {
 
               name = details['NAME']!;
               section = details['SECTION']!;
-
               print('student: $name  $section');
 
-              String encodedFaDetails = Uri.encodeComponent("FA DETAILS");
-
-              searchData.addAll({'SECTION': section.trim(), 'YEAR': year});
+              searchData.addAll({'SECTION': section.trim(), 'YEAR': year.trim()});
               print('data: ${searchData.toString()}');
-              details = await downloadedDetail(encodedFaDetails, 'FACULTY ADVISORS', searchData);
+              details = await downloadedDetail('FA DETAILS', 'FACULTY ADVISORS', searchData);
               searchData.clear();
 
               if(details.isEmpty){
@@ -233,43 +230,27 @@ class MyHomePage extends StatelessWidget {
               faname = details['NAME']!;
               famailid = details['MAIL ID']!;
               fastaffid = details['STAFF ID']!;
-              String romanSlot = details['SLOT']!;
-              int slotNumber = utils.romanToInteger(romanSlot);
-              slot = slotNumber.toString();
+              String slot = details['SLOT']!;
               stream = details['STREAM']!;
 
-              // details.clear();
-              // searchData.addAll({'REG NO':id});
-              // details = await downloadedDetail('HOSTEL DETAILS', 'HOSTEL DETAILS', searchData);
-              // searchData.clear();
-              //
-              // if(details.isEmpty){
-              //   utils.showToastMessage('HOSTEL DETAILS NOT FOUND', context);
-              //   print('DETAILS ARE EMPTY');
-              //   GoogleSignIn().disconnect();
-              //   FirebaseAuth.instance.signOut();
-              //   EasyLoading.dismiss();
-              //   return;
-              // }
-              //
-              // String hostelName=details['HOSTEL NAME']!;
-              // String hostelRoomNo=details['ROOM NO']!;
+              year=utils.romanToInteger(year).toString();
+              slot=utils.romanToInteger(slot).toString();
 
               documentReference = FirebaseFirestore.instance.doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$id');
               data.addAll({
-                'UID': userId,
+                'UID': userId.trim(),
                 'TOKEN': token ?? '',
-                'BRANCH': branch,
-                'STREAM': stream,
-                'NAME': name,
+                'BRANCH': branch.trim(),
+                'STREAM': stream.trim(),
+                'NAME': name.trim(),
                 'REGISTRATION NUMBER': id,
-                'YEAR': year,
-                'SECTION': section,
+                'YEAR': year.trim(),
+                'SECTION': section.trim(),
                 'MAIL ID': email,
-                'FACULTY ADVISOR NAME': faname,
-                'FACULTY ADVISOR MAIL ID': famailid,
-                'FACULTY ADVISOR STAFF ID': fastaffid,
-                'SLOT': slot,
+                'FACULTY ADVISOR NAME': faname.trim(),
+                'FACULTY ADVISOR MAIL ID': famailid.trim(),
+                'FACULTY ADVISOR STAFF ID': fastaffid.trim(),
+                'SLOT': slot.trim(),
                 'HOSTEL NAME': 'BHARATHI MENS HOSTEL',
                 'HOSTEL TYPE': 'NORMAL',
                 'HOSTEL ROOM NUMBER': '215'
@@ -298,12 +279,11 @@ class MyHomePage extends StatelessWidget {
 
               Map<String, String> searchData = {};
 
-              searchData.addAll({'MAIL ID': email});
+              searchData.addAll({'MAIL ID': email.trim()});
               adminDetails =
               await downloadedDetail('ADMINS', 'ADMINS', searchData);
 
-              faDetails =
-              await downloadedDetail('FA DETAILS', 'FA DETAILS', searchData);
+              faDetails = await downloadedDetail('FA DETAILS', 'FA DETAILS', searchData);
               searchData.clear();
 
               if (adminDetails.isNotEmpty && faDetails.isNotEmpty) {
@@ -320,11 +300,10 @@ class MyHomePage extends StatelessWidget {
                 facultyAdvisorYear = faDetails['YEAR'] ?? 'N/A';
 
                 if (utils.isRomanNumeral(facultyAdvisorYear)) {
-                  facultyAdvisorYear =
-                      utils.romanToInteger(facultyAdvisorYear).toString();
+                  facultyAdvisorYear = utils.romanToInteger(facultyAdvisorYear).toString();
                 }
-                List<String> yearCoordinatorYearList = yearCoordinatorYear
-                    .split(',');
+
+                List<String> yearCoordinatorYearList = yearCoordinatorYear.split(',');
                 List<String> updatedYearList = [];
 
                 for (String year in yearCoordinatorYearList) {
@@ -339,10 +318,10 @@ class MyHomePage extends StatelessWidget {
                 yearCoordinatorYear = updatedYearList.join(',');
                 print('yearCoordinatorYear: $yearCoordinatorYear');
 
-                data.addAll({'UID': userId, 'TOKEN': token ?? '', 'PRIVILEGE': privilege, 'NAME': name, 'BRANCH': branch, 'MOBILE NUMBER': mobileNumber, 'STAFF ID': staffID,
-                  'MAIL ID': email, 'YEAR COORDINATOR YEAR': yearCoordinatorYear, 'YEAR COORDINATOR STREAM': yearCoordinatorStream, 'FACULTY ADVISOR STREAM': facultyAdvisorStream,
-                  'FACULTY ADVISOR YEAR': facultyAdvisorYear, 'FACULTY ADVISOR SECTION': facultyAdvisorSection
-                });
+                data.addAll({'UID': userId.trim(), 'TOKEN': token ?? '', 'PRIVILEGE': privilege, 'NAME': name, 'BRANCH': branch.trim(), 'MOBILE NUMBER': mobileNumber.trim(),
+                  'STAFF ID': staffID.trim(), 'MAIL ID': email, 'YEAR COORDINATOR YEAR': yearCoordinatorYear.trim(), 'YEAR COORDINATOR STREAM': yearCoordinatorStream.trim(),
+                  'FACULTY ADVISOR STREAM': facultyAdvisorStream.trim(), 'FACULTY ADVISOR YEAR': facultyAdvisorYear.trim(), 'FACULTY ADVISOR SECTION': facultyAdvisorSection.trim()});
+
               } else if (faDetails.isNotEmpty) {
                 print('FACULTY ADVISOR');
                 privilege = 'FACULTY ADVISOR';
@@ -350,19 +329,19 @@ class MyHomePage extends StatelessWidget {
                 staffID = faDetails['STAFF ID'] ?? 'N/A';
                 branch = faDetails['BRANCH'] ?? 'N/A';
                 mobileNumber = faDetails['MOBILE NUMBER'] ?? 'N/A';
-                facultyAdvisorYear = faDetails['YEAR']!;
                 facultyAdvisorStream = faDetails['STREAM'] ?? 'N/A';
                 facultyAdvisorSection = faDetails['SECTION'] ?? 'N/A';
                 slot = faDetails['SLOT'] ?? 'N/A';
                 facultyAdvisorYear = faDetails['YEAR'] ?? 'N/A';
 
                 if (utils.isRomanNumeral(facultyAdvisorYear)) {
-                  facultyAdvisorYear =
-                      utils.romanToInteger(facultyAdvisorYear).toString();
+                  facultyAdvisorYear = utils.romanToInteger(facultyAdvisorYear).toString();
                 }
+                slot=utils.romanToInteger(slot).toString();
 
-                data.addAll({'UID': userId, 'TOKEN': token ?? '', 'PRIVILEGE': privilege, 'NAME': name, 'BRANCH': branch, 'MOBILE NUMBER': mobileNumber, 'STAFF ID': staffID,
-                  'MAIL ID': email, 'FACULTY ADVISOR STREAM': facultyAdvisorStream, 'FACULTY ADVISOR SECTION': facultyAdvisorSection, 'FACULTY ADVISOR YEAR': facultyAdvisorYear, 'SLOT': slot
+                data.addAll({'UID': userId.trim(), 'TOKEN': token ?? '', 'PRIVILEGE': privilege.trim(), 'NAME': name, 'BRANCH': branch.trim(), 'MOBILE NUMBER': mobileNumber,
+                  'STAFF ID': staffID, 'MAIL ID': email.trim(), 'FACULTY ADVISOR STREAM': facultyAdvisorStream.trim(), 'FACULTY ADVISOR SECTION': facultyAdvisorSection.trim(),
+                  'FACULTY ADVISOR YEAR': facultyAdvisorYear.trim(), 'SLOT': slot.trim()
                 });
               } else if (adminDetails.isNotEmpty) {
                 privilege = adminDetails['PRIVILEGE'] ?? 'N/A';
@@ -391,27 +370,27 @@ class MyHomePage extends StatelessWidget {
 
                 if (privilege == 'YEAR COORDINATOR') {
                   data.addAll({
-                    'UID': userId,
+                    'UID': userId.trim(),
                     'TOKEN': token ?? '',
-                    'PRIVILEGE': privilege,
-                    'NAME': name,
-                    'BRANCH': branch,
-                    'STAFF ID': staffID,
-                    'MAIL ID': email,
-                    'YEAR COORDINATOR YEAR': year,
-                    'YEAR COORDINATOR STREAM': stream,
+                    'PRIVILEGE': privilege.trim(),
+                    'NAME': name.trim(),
+                    'BRANCH': branch.trim(),
+                    'STAFF ID': staffID.trim(),
+                    'MAIL ID': email.trim(),
+                    'YEAR COORDINATOR YEAR': year.trim(),
+                    'YEAR COORDINATOR STREAM': stream.trim(),
                   });
                 } else if (privilege == 'HOD') {
                   data.addAll({
                     'UID': userId,
                     'TOKEN': token ?? '',
-                    'PRIVILEGE': privilege,
-                    'NAME': name,
-                    'BRANCH': branch,
-                    'STAFF ID': staffID,
-                    'MAIL ID': email,
-                    'HOD YEAR': year,
-                    'HOD STREAM': stream,
+                    'PRIVILEGE': privilege.trim(),
+                    'NAME': name.trim(),
+                    'BRANCH': branch.trim(),
+                    'STAFF ID': staffID.trim(),
+                    'MAIL ID': email.trim(),
+                    'HOD YEAR': year.trim(),
+                    'HOD STREAM': stream.trim(),
                   });
                 }
               }
@@ -429,7 +408,8 @@ class MyHomePage extends StatelessWidget {
                   String hostelFloorNumber=hostelWardenDetails['FLOOR']!;
                   String wardenName=hostelWardenDetails['NAME']!;
                   String hostelType=hostelWardenDetails['TYPE']!;
-                  data.addAll({'NAME':wardenName,'HOSTEL NAME':hostelName,'HOSTEL FLOOR':hostelFloorNumber,'PRIVILEGE':privilege,'HOSTEL TYPE': hostelType,'MAIL ID': email});
+                  data.addAll({'NAME':wardenName.trim(),'HOSTEL NAME':hostelName.trim(),'HOSTEL FLOOR':hostelFloorNumber.trim(),'PRIVILEGE':privilege,
+                    'HOSTEL TYPE': hostelType,'MAIL ID': email});
 
                   documentReference=FirebaseFirestore.instance.doc('KLU/HOSTELS STAFF DETAILS/$hostelName/$hostelFloorNumber');
                   print('Hostel warden details: ${documentReference.path}');
@@ -492,18 +472,23 @@ class MyHomePage extends StatelessWidget {
     }
   }
 
-  Future<Map<String,String>> downloadedDetail(String encodedPath,String filename,Map<String,String> data) async{
-    Storage storage=Storage();
-    Reader reader=Reader();
+  Future<Map<String, String>> downloadedDetail(String encodedPath, String filename, Map<String, String> data) async {
+    Storage storage = Storage();
+    Reader reader = Reader();
     String fileUrl = 'https://firebasestorage.googleapis.com/v0/b/klu_details/o/$encodedPath.xlsx?alt=media';
     print("downloadedDetail: ${fileUrl.toString()}");
 
-    String filePath=await storage.downloadFileInCache(fileUrl, '$filename.xlsx');
-    Map<String,String> details=await reader.readExcelFile(filePath,data);
+    String filePath = await storage.downloadFileInCache(fileUrl, '$filename.xlsx');
+    Map<String, String> details = await reader.readExcelFile(filePath, data);
+
+    // Remove white spaces in map values and keys
+    details = details.map((key, value) => MapEntry(key.trim(), value.trim()));
+
     print('downloadedDetail: ${details.toString()}');
 
     return details;
   }
+
 
   Future<String?> LecturerORStudent(String input) async {
     // Removes special characters
@@ -581,13 +566,13 @@ class MyHomePage extends StatelessWidget {
       // Check the extracted character and return the corresponding branch
       switch (branchCode) {
         case '0':
-          return '4';
+          return 'IV';
         case '1':
-          return '3';
+          return 'III';
         case '2':
-          return '2';
+          return "II";
         case '3':
-          return '1';
+          return 'I';
         default:
           return 'Unknown Branch';
       }

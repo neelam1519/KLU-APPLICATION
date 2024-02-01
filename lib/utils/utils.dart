@@ -8,6 +8,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../main.dart';
@@ -177,5 +178,32 @@ class Utils {
 
     // Get the Firestore instance and return the new CollectionReference
     return FirebaseFirestore.instance.collection(collectionPath);
+  }
+  String getTime(){
+    DateTime now = DateTime.now();
+    String formattedDate = DateFormat('dd-MM-yyyy').format(now);
+    print('Formatted Date: $formattedDate');
+    return formattedDate;
+  }
+
+  List<String> getOneWeekDates() {
+    // Get today's date
+    DateTime now = DateTime.now();
+
+    // Calculate the start date of the previous week (6 days ago)
+    DateTime startDate = now.subtract(Duration(days: 6));
+
+    print('Previous days: ${startDate.toString()}');
+
+    // Generate dates for each day in the previous week
+    List<DateTime> previousWeekDates = List.generate(7, (index) => startDate.add(Duration(days: index)),);
+
+    // Format each date in the "dd-MM-yyyy" format
+    List<String> formattedDates = previousWeekDates.map((date) => DateFormat('dd-MM-yyyy').format(date),).toList();
+
+    // Print the formatted dates
+    print('Previous Week Dates: $formattedDates');
+
+    return formattedDates;
   }
 }

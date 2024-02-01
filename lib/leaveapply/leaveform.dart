@@ -112,7 +112,7 @@ class _LeaveFormState extends State<LeaveForm> {
     RealtimeDatabase realtimedatabase=RealtimeDatabase();
     SharedPreferences secureStorage = SharedPreferences();
 
-    await realtimedatabase.incrementLeaveCount();
+    await realtimedatabase.incrementLeaveCount('KLU/LEAVE COUNT');
 
     String? year=await secureStorage.getSecurePrefsValue("YEAR");
     String? branch=await secureStorage.getSecurePrefsValue("BRANCH");
@@ -122,8 +122,12 @@ class _LeaveFormState extends State<LeaveForm> {
     String? stream=await secureStorage.getSecurePrefsValue("STREAM");
     String? section=await secureStorage.getSecurePrefsValue("SECTION");
 
-    int leaveid= await realtimedatabase.getLeaveCount();
+    int leaveid= await realtimedatabase.getLeaveCount('KU/LEAVE COUNT');
     String leavecount=leaveid.toString();
+
+
+    await realtimedatabase.incrementLeaveCount('KLU/${utils.getTime()}/$year/$branch/$stream/$section/PENDING');
+    await realtimedatabase.incrementLeaveCount('KLU/${utils.getTime()}/$year/$branch/$stream/$section/APPLIED');
 
     String reason = reasonController.text;
     if(reason.length<=20){

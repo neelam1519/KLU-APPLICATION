@@ -41,9 +41,6 @@ class Reader{
                 List<dynamic> columnValuesList = columnValues[i].split(',');
                 print('columnValuesList: ${columnValuesList.toString()}');
                 for (String columnValue in columnValuesList) {
-                  if (utils.isRomanNumeral(columnValue)) {
-                    columnValue = utils.romanToInteger(columnValue).toString();
-                  }
                   if (columnValue == values) {
                     allIndexes.add(i);
                   }
@@ -90,5 +87,6 @@ class Reader{
     }
     return {};
   }
+
 
 }

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:klu_flutter/leaveapply/studentformsview.dart';
+import 'package:klu_flutter/utils/RealtimeDatabase.dart';
 import 'package:klu_flutter/utils/utils.dart';
 import '../utils/Firebase.dart';
 import '../utils/shraredprefs.dart';
@@ -25,6 +26,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
   Utils utils=Utils();
   FirebaseService firebaseService = FirebaseService();
   SharedPreferences sharedPreferences = SharedPreferences();
+  RealtimeDatabase realtimeDatabase=RealtimeDatabase();
   String? privilege;
   late DocumentReference lecturerReference;
   List<String> details=[];
@@ -185,6 +187,11 @@ class _LeaveDataState extends State<LeaveDetailsView> {
         field='HOSTEL WARDEN APPROVAL';
         verified='APPROVED';
       }
+      await realtimeDatabase.incrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/'
+          '${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/ACCEPTED');
+
+      await realtimeDatabase.decrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/'
+          '${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/PENDING');
 
       value = await firebaseService.getDocumentReferenceFieldValue(leaveRef.doc('PENDING'), widget.leaveid);
       print('onAccept ${value.toString()}');
@@ -242,6 +249,11 @@ class _LeaveDataState extends State<LeaveDetailsView> {
         utils.showToastMessage('Error occured while rejecting', context);
         return;
       }
+      await realtimeDatabase.incrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/'
+          '${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/REJECTED');
+
+      await realtimeDatabase.decrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/'
+          '${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/PENDING');
 
       value = await firebaseService.getDocumentReferenceFieldValue(collectionReference.doc('PENDING'), widget.leaveid);
       await firebaseService.storeDocumentReference(collectionReference.doc('REJECTED'), widget.leaveid, value!);
