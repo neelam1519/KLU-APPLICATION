@@ -165,7 +165,7 @@ class MyHomePage extends StatelessWidget {
           SharedPreferences sharedPreferences=SharedPreferences();
           FirebaseService firebaseService=FirebaseService();
 
-          lecturerorstudent='STAFF';
+          //lecturerorstudent='STAFF';
 
           if(lecturerorstudent=='STUDENT'){
             try {
