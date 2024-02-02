@@ -1,14 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:klu_flutter/leaveapply/leavedetailsview.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/RealtimeDatabase.dart';
 import 'package:klu_flutter/utils/utils.dart';
-
 import '../utils/shraredprefs.dart';
-
 
 class LecturerLeaveFormsView extends StatefulWidget {
   final String? privilege;
