@@ -45,6 +45,19 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<key>NSLocalNetworkUsageDescription</key>
+        <string>We need access to your local network for...</string>
+
+    <key>NSContactsUsageDescription</key>
+        <string>We need access to your contacts for...</string>
+
+    <key>NSCameraUsageDescription</key>
+        <string>We need access to your camera to take photos.</string>
+
+    <key>NSLocationWhenInUseUsageDescription</key>
+        <string>We need your location for better accuracy.</string>
+
     <key>CFBundleURLTypes</key>
     <array>
         <dict>

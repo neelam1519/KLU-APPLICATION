@@ -15,6 +15,7 @@ import 'package:klu_flutter/main.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class Home extends StatefulWidget {
   final String loggedUser;
@@ -37,8 +38,9 @@ class _HomeState extends State<Home> {
 
   @override
   void initState() {
-    utils.showToastMessage(widget.loggedUser, context);
+    //utils.showToastMessage(widget.loggedUser, context);
     utils.showDefaultLoading();
+    requestPermissions();
     loadProfileImageBytes().then((bytes) {
       setState(() {
         imageBytes = bytes;
@@ -204,6 +206,37 @@ class _HomeState extends State<Home> {
       return Uint8List.fromList(base64Decode(base64Image));
     }
     return null;
+  }
+
+  Future<void> requestPermissions() async {
+    // Check if camera permission is already granted
+    var notificationStatus = await Permission.storage.status;
+
+    if (notificationStatus.isPermanentlyDenied) {
+      await Permission.notification.request();
+    } else if (notificationStatus.isGranted) {
+      // Camera permission is already granted
+    }
+
+    // Check if location permission is already granted
+    var locationStatus = await Permission.locationWhenInUse.status;
+
+    if (locationStatus.isPermanentlyDenied) {
+      await Permission.notification.request();
+    } else if (locationStatus.isGranted) {
+      // Location permission is already granted
+    }
+
+    // Check if contacts permission is already granted
+    var contactsStatus = await Permission.contacts.status;
+
+    if (contactsStatus.isPermanentlyDenied) {
+      await Permission.notification.request();
+    } else if (contactsStatus.isGranted) {
+      // Contacts permission is already granted
+    }
+    print('Permisstions: ${notificationStatus}');
+     utils.showToastMessage('Permission: ${notificationStatus}', context);
   }
 
   Future<void> signOut(BuildContext context) async {
