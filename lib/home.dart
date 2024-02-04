@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:klu_flutter/account.dart';
 import 'package:klu_flutter/leaveapply/lecturerleaveformsview.dart';
@@ -31,6 +32,8 @@ class _HomeState extends State<Home> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   FirebaseService firebaseService = FirebaseService();
   SharedPreferences sharedPreferences = SharedPreferences();
+  final FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
+
   String? fullname;
   String? email;
   Uint8List? imageBytes;
@@ -40,7 +43,7 @@ class _HomeState extends State<Home> {
   void initState() {
     //utils.showToastMessage(widget.loggedUser, context);
     utils.showDefaultLoading();
-    requestPermissions();
+    requestNotificationPermissions();
     loadProfileImageBytes().then((bytes) {
       setState(() {
         imageBytes = bytes;
@@ -184,14 +187,8 @@ class _HomeState extends State<Home> {
   Future<void> getDetails() async {
     print("getDetails");
 
-    String? year = await sharedPreferences.getSecurePrefsValue("YEAR");
-    String? branch = await sharedPreferences.getSecurePrefsValue("BRANCH");
-    String? regNo = await sharedPreferences.getSecurePrefsValue("REGISTRATION NUMBER");
-    String? staffId = await sharedPreferences.getSecurePrefsValue("STAFF ID");
-    String? privilege = await sharedPreferences.getSecurePrefsValue("PRIVILEGE");
     fullname = await sharedPreferences.getSecurePrefsValue("NAME");
     email = await sharedPreferences.getSecurePrefsValue("MAIL ID");
-    String? stream=await sharedPreferences.getSecurePrefsValue('STREAM');
     DocumentReference documentReference;
 
     print('User details retrieved and stored successfully!');
@@ -208,35 +205,22 @@ class _HomeState extends State<Home> {
     return null;
   }
 
-  Future<void> requestPermissions() async {
-    // Check if camera permission is already granted
-    var notificationStatus = await Permission.storage.status;
+  void requestNotificationPermissions() async {
+    final messaging = FirebaseMessaging.instance;
 
-    if (notificationStatus.isPermanentlyDenied) {
-      await Permission.notification.request();
-    } else if (notificationStatus.isGranted) {
-      // Camera permission is already granted
+    final settings = await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+
+    if (kDebugMode) {
+      print('Permission granted: ${settings.authorizationStatus}');
     }
-
-    // Check if location permission is already granted
-    var locationStatus = await Permission.locationWhenInUse.status;
-
-    if (locationStatus.isPermanentlyDenied) {
-      await Permission.notification.request();
-    } else if (locationStatus.isGranted) {
-      // Location permission is already granted
-    }
-
-    // Check if contacts permission is already granted
-    var contactsStatus = await Permission.contacts.status;
-
-    if (contactsStatus.isPermanentlyDenied) {
-      await Permission.notification.request();
-    } else if (contactsStatus.isGranted) {
-      // Contacts permission is already granted
-    }
-    print('Permisstions: ${notificationStatus}');
-     utils.showToastMessage('Permission: ${notificationStatus}', context);
   }
 
   Future<void> signOut(BuildContext context) async {

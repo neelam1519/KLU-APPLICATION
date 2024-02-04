@@ -10,6 +10,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:klu_flutter/firebase_options.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:klu_flutter/provider.dart';
+import 'package:klu_flutter/services/pushnotificationservice.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/readers.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
@@ -56,9 +57,12 @@ class MyApp extends StatelessWidget {
 }
 
 class MyAuthenticationCheck extends StatelessWidget {
+  final PushNotificationService _notificationService = PushNotificationService();
 
   @override
   Widget build(BuildContext context) {
+    _notificationService.initialize();
+
     return FutureBuilder(
       // Check the authentication state
       future: FirebaseAuth.instance.authStateChanges().first,
