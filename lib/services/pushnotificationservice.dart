@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 
 class PushNotificationService {
   FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
     print('pushNotificationService is started');
@@ -31,7 +33,6 @@ class PushNotificationService {
     try {
       String? token = await _fcm.getToken();
       print('Token: $token');
-      await updateToken(token!);
       return token;
     } catch (e) {
       print('Error getting FCM token: $e');

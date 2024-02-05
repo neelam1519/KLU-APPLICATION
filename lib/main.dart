@@ -57,11 +57,9 @@ class MyApp extends StatelessWidget {
 }
 
 class MyAuthenticationCheck extends StatelessWidget {
-  final PushNotificationService _notificationService = PushNotificationService();
 
   @override
   Widget build(BuildContext context) {
-    _notificationService.initialize();
 
     return FutureBuilder(
       // Check the authentication state
@@ -621,4 +619,6 @@ class MyHomePage extends StatelessWidget {
       return email;
     }
   }
+
+
 }

@@ -13,6 +13,7 @@ import 'package:klu_flutter/account.dart';
 import 'package:klu_flutter/leaveapply/lecturerleaveformsview.dart';
 import 'package:klu_flutter/leaveapply/studentformsview.dart';
 import 'package:klu_flutter/main.dart';
+import 'package:klu_flutter/services/pushnotificationservice.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
@@ -33,6 +34,8 @@ class _HomeState extends State<Home> {
   FirebaseService firebaseService = FirebaseService();
   SharedPreferences sharedPreferences = SharedPreferences();
   final FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
+  final PushNotificationService _notificationService = PushNotificationService();
+
 
   String? fullname;
   String? email;
@@ -41,6 +44,7 @@ class _HomeState extends State<Home> {
 
   @override
   void initState() {
+    _notificationService.initialize();
     //utils.showToastMessage(widget.loggedUser, context);
     utils.showDefaultLoading();
     requestNotificationPermissions();
@@ -50,6 +54,7 @@ class _HomeState extends State<Home> {
       });
     });
     getDetails();
+    sendNotification();
     super.initState();
   }
 
@@ -221,6 +226,16 @@ class _HomeState extends State<Home> {
     if (kDebugMode) {
       print('Permission granted: ${settings.authorizationStatus}');
     }
+  }
+
+  void sendNotification(){
+
+    final DocumentReference leaveFormsCollection = FirebaseFirestore.instance.doc('KLU/STUDENT DETAILS/3/CSE/DS/99210041602/LEAVE FORMS/3fjk');
+    print('document path:${leaveFormsCollection.path}');
+    FirebaseService firebaseService=FirebaseService();
+    Map<String,String> data={'REGISTRATION NUMBER':'99210041602','TOKEN':'edfNLXodToSzG8teaoUEwH:APA91bGirZ4PSemlrh13r7Dn4_3B5_KHIBDoqgaqHM8Ox6cKPmrtn-5jatpTA04nFONsxNUog49bQ7bDFvR-zRxts6fQ2ZqjdWmZrcum20pfkbTA34bvzzr7kgj8lrF817zStMyKpqDY'};
+    firebaseService.uploadMapDetailsToDoc(leaveFormsCollection, data);
+
   }
 
   Future<void> signOut(BuildContext context) async {
