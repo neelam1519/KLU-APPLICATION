@@ -2,11 +2,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:klu_flutter/firebase_options.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -31,6 +29,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   WidgetsFlutterBinding.ensureInitialized();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(
     MultiProvider(
       providers: [
@@ -40,6 +39,22 @@ void main() async {
     ),
   );
 }
+
+@pragma("vm:entry-point")
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // If you're going to use other Firebase services in the background, such as Firestore,
+  // make sure you call `initializeApp` before using other Firebase services.
+  await Firebase.initializeApp();
+  if (message.notification != null) {
+    String title = message.notification!.title ?? 'Default Title';
+    String body = message.notification!.body ?? 'Default Body';
+    PushNotificationService().showLocalNotification(title, body);
+    print("data $title  $body");
+  }
+
+  print("Handling a background message: ${message.messageId}");
+}
+
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -172,7 +187,7 @@ class MyHomePage extends StatelessWidget {
           SharedPreferences sharedPreferences=SharedPreferences();
           FirebaseService firebaseService=FirebaseService();
 
-          lecturerorstudent='STAFF';
+          //lecturerorstudent='STAFF';
 
           if(lecturerorstudent=='STUDENT'){
             try {

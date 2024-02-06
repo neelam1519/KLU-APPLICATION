@@ -4,7 +4,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -13,12 +12,9 @@ import 'package:klu_flutter/account.dart';
 import 'package:klu_flutter/leaveapply/lecturerleaveformsview.dart';
 import 'package:klu_flutter/leaveapply/studentformsview.dart';
 import 'package:klu_flutter/main.dart';
-import 'package:klu_flutter/services/pushnotificationservice.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:twilio_flutter/twilio_flutter.dart';
 
 class Home extends StatefulWidget {
   final String loggedUser;
@@ -35,37 +31,35 @@ class _HomeState extends State<Home> {
   FirebaseService firebaseService = FirebaseService();
   SharedPreferences sharedPreferences = SharedPreferences();
   final FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
-  TwilioFlutter twilioFlutter=TwilioFlutter(
-      accountSid : 'AC20193099ffdd58f19dddcd9889fe39dd', // replace *** with Account SID
-      authToken : '9dad3924d614df3f2423c479481fe4dd',  // replace xxx with Auth Token
-      twilioNumber : '+12403923852'  // replace .... with Twilio Number
-  );
-  String? fcmToken;
-
-  String? fullname;
-  String? email;
-  Uint8List? imageBytes;
+  FirebaseFirestore firebaseFirestore=FirebaseFirestore.instance;
   Utils utils=Utils();
+
+  String? name,email,privilege,fcmToken;
+  Uint8List? imageBytes;
 
   @override
   void initState() {
-
-    //utils.showToastMessage(widget.loggedUser, context);
-    // twilioFlutter.sendSMS(
-    //     toNumber : '+918501070702',
-    //     messageBody : 'This is from MyUniv');
-
+    super.initState();
     utils.showDefaultLoading();
-    requestNotificationPermissions();
+    initializeData();
+
     loadProfileImageBytes().then((bytes) {
-    storeFcmToken();
     setState(() {
       imageBytes = bytes;
     });
     });
     getDetails();
-    super.initState();
   }
+
+  Future<void> initializeData()async{
+    if(await utils.checkInternetConnectivity()){
+      requestNotificationPermissions();
+      storeFcmToken();
+    }else{
+      utils.showToastMessage('Check your internet connection', context);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -97,24 +91,9 @@ class _HomeState extends State<Home> {
                     children: [
                       InkWell(
                         onTap: () async {
-                          Utils utils=Utils();
-                          final connectivityResult = await Connectivity().checkConnectivity();
 
-                          if (connectivityResult == ConnectivityResult.none) {
-                            utils.showToastMessage("Connect to the Internet", context);
-                          } else {
-                            String? privilege=await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
+                          leaveFormClicked();
 
-                            if(privilege=='FACULTY ADVISOR' || privilege=='HOD' || privilege=='YEAR COORDINATOR' || privilege=='FACULTY ADVISOR AND YEAR COORDINATOR' || privilege=='HOSTEL WARDEN'){
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => LecturerLeaveFormsView(privilege: privilege,)));
-
-                            }else if(privilege=='STUDENT'){
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => StudentsLeaveFormsView()));
-
-                            }else{
-                              utils.showToastMessage('unable to say your position', context);
-                            }
-                          }
                         },
                         child: Image.asset('assets/images/leaveicon.png', width: 130, height: 120, fit: BoxFit.cover),
                       ),
@@ -129,16 +108,9 @@ class _HomeState extends State<Home> {
                     children: [
                       InkWell(
                         onTap: () async {
-                          Utils utils=Utils();
-                          final connectivityResult = await Connectivity().checkConnectivity();
 
-                          if (connectivityResult == ConnectivityResult.none) {
-                            utils.showToastMessage("Connect to the Internet", context);
-                          } else {
-                            utils.showToastMessage('UNDER DEVELOPMENT', context);
-                            print('SOC tapped!');
-                          }
-                          // Handle the onPressed action for the second image
+                          utils.showToastMessage('UNDER DEVELOPMENT', context);
+
                         },
                         child: Image.asset('assets/images/KLU_LOGO.png', width: 130, height: 120, fit: BoxFit.cover),
                       ),
@@ -159,7 +131,7 @@ class _HomeState extends State<Home> {
               padding: EdgeInsets.zero,
               children: [
                 UserAccountsDrawerHeader(
-                  accountName: Text(fullname ?? 'Name not found'),
+                  accountName: Text(name ?? 'Name not found'),
                   accountEmail: Text(email ?? 'Email not found'),
                   currentAccountPicture: Image.memory(
                     imageBytes ?? Uint8List(0),
@@ -198,14 +170,31 @@ class _HomeState extends State<Home> {
     );
   }
 
+  Future<void> leaveFormClicked() async{
+    if(await utils.checkInternetConnectivity()){
+
+      if(privilege=='FACULTY ADVISOR' || privilege=='HOD' || privilege=='YEAR COORDINATOR' || privilege=='FACULTY ADVISOR AND YEAR COORDINATOR' || privilege=='HOSTEL WARDEN'){
+        Navigator.push(context, MaterialPageRoute(builder: (context) => LecturerLeaveFormsView(privilege: privilege,)));
+
+      }else if(privilege=='STUDENT'){
+        Navigator.push(context, MaterialPageRoute(builder: (context) => StudentsLeaveFormsView()));
+
+      }else{
+        utils.showToastMessage('unable to say your position', context);
+      }
+    }else{
+      utils.showToastMessage('Check your internet connection', context);
+    }
+  }
+
   Future<void> getDetails() async {
 
     print("getDetails");
-    fullname = await sharedPreferences.getSecurePrefsValue("NAME");
+    name = await sharedPreferences.getSecurePrefsValue("NAME");
     email = await sharedPreferences.getSecurePrefsValue("MAIL ID");
-
-    print('User details retrieved and stored successfully!');
+    privilege=await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
     EasyLoading.dismiss();
+
   }
 
   Future<Uint8List?> loadProfileImageBytes() async {
@@ -253,57 +242,51 @@ class _HomeState extends State<Home> {
 
   Future<void> storeFcmToken() async {
     try {
-      String? section, branch = '', year, stream, staffID, regNo;
-      String? hostelName = '', hostelFloor = '';
+      String? branch, year, stream, staffID, regNo;
+      String? hostelName, wardenID;
 
+      // Retrieve user information from shared preferences
       branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
       hostelName = await sharedPreferences.getSecurePrefsValue('HOSTEL NAME');
-      hostelFloor = await sharedPreferences.getSecurePrefsValue('HOSTEL FLOOR');
       staffID = await sharedPreferences.getSecurePrefsValue('STAFF ID');
       year = await sharedPreferences.getSecurePrefsValue("YEAR");
       regNo = await sharedPreferences.getSecurePrefsValue("REGISTRATION NUMBER");
       stream = await sharedPreferences.getSecurePrefsValue("STREAM");
+      wardenID = await sharedPreferences.getSecurePrefsValue('HOSTEL WARDEN ID');
 
-      String? privilege =
-      await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
-      DocumentReference documentReference =
-      FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
+      // Get the FCM token
+      String? token = await FirebaseMessaging.instance.getToken();
+      if (token == null) {
+        print('Failed to get FCM token.');
+        return;
+      }
 
-      FirebaseMessaging.instance.getToken().then((token)  async {
-        print('FCM Token Refreshed: $token');
-        // Update the token on your server or perform other necessary tasks
+      // Determine the document reference based on user privilege
+      DocumentReference documentReference;
+      switch (privilege) {
+        case 'HOD':
+        case 'FACULTY ADVISOR':
+        case 'YEAR COORDINATOR':
+        case 'FACULTY ADVISOR AND YEAR COORDINATOR':
+          documentReference = firebaseFirestore.doc('KLU/STAFF DETAILS/$staffID');
+          break;
+        case 'STUDENT':
+          documentReference = firebaseFirestore.doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo/');
+          break;
+        case 'HOSTEL WARDEN':
+          documentReference = firebaseFirestore.doc('KLU/HOSTEL WARDEN DETAILS/$hostelName/$wardenID');
+          break;
+        default:
+          print('Unknown privilege: $privilege');
+          return;
+      }
 
-        if (privilege != null) {
-          switch (privilege) {
-            case 'HOD':
-            case 'FACULTY ADVISOR':
-            case 'YEAR COORDINATOR':
-            case 'FACULTY ADVISOR AND YEAR COORDINATOR':
-              documentReference =
-                  FirebaseFirestore.instance.doc('KLU/STAFF DETAILS/$staffID');
-              break;
-            case 'STUDENT':
-              documentReference = FirebaseFirestore.instance
-                  .doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo/');
-              break;
-            case 'HOSTEL WARDEN':
-            // Handle HOSTEL WARDEN case
-              break;
-            default:
-              utils.showToastMessage(
-                  'UNABLE TO GET THE REFERENCE DETAILS', context);
-          }
-
-          Map<String, String> data = {'FCM TOKEN': token ?? ''};
-          await firebaseService.uploadMapDetailsToDoc(documentReference, data);
-          print('FCM TOKEN IS UPDATED SUCCESSFULLY');
-        }
-      });
+      // Update FCM token in Firestore
+      await documentReference.set({'FCM TOKEN': token}, SetOptions(merge: true));
+      print('FCM TOKEN is updated successfully.');
     } catch (e) {
-      // Handle any errors that occur during the execution
       print('Error in storeFcmToken: $e');
-      // You may want to show a message or perform additional error handling here
+      // Handle any errors that occur during the execution
     }
   }
-
 }

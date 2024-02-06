@@ -32,7 +32,6 @@ dependencies:
     sdk: flutter
 
   firebase_core: ^2.24.2
-  cupertino_icons: ^1.0.2
   firebase_auth: ^4.16.0
   google_sign_in: ^6.2.1
   sign_in_button: ^3.2.0
@@ -59,6 +58,8 @@ dependencies:
   flutter_launcher_icons: ^0.13.1
   flutter_local_notifications: ^16.3.2
   twilio_flutter: ^0.0.9
+  cupertino_icons: ^1.0.6
+
 
 dev_dependencies:
   flutter_test:

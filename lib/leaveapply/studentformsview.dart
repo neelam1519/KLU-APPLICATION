@@ -38,6 +38,49 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
     });
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('YOUR LEAVE APPLICATIONS'),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: studentLeaveRef.snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text('No Leave Data Available'));
+          } else {
+            List<DocumentSnapshot> leaveForms = snapshot.data!.docs;
+            return ListView.builder(
+              itemCount: leaveForms.length,
+              itemBuilder: (context, index) {
+                EasyLoading.dismiss();
+                return buildLeaveCard(leaveForms[index]);
+              },
+            );
+          }
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          utils.showToastMessage('Apply For leave', context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LeaveForm(),
+            ),
+          );
+        },
+        child: Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    );
+  }
+
   Widget buildLeaveCard(DocumentSnapshot leaveForm) {
     final cardData = leaveForm.data() as Map<String, dynamic>;
     return Card(
@@ -85,48 +128,4 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('YOUR LEAVE APPLICATIONS'),
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: studentLeaveRef.snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('No Leave Data Available'));
-          } else {
-            List<DocumentSnapshot> leaveForms = snapshot.data!.docs;
-            return ListView.builder(
-              itemCount: leaveForms.length,
-              itemBuilder: (context, index) {
-                EasyLoading.dismiss();
-                return buildLeaveCard(leaveForms[index]);
-              },
-            );
-          }
-        },
-      ),
-
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          utils.showToastMessage('Apply For leave', context);
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => LeaveForm(),
-            ),
-          );
-        },
-        child: Icon(Icons.add),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-    );
-  }
 }

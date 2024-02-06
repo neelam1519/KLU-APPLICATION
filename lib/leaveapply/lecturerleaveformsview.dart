@@ -19,18 +19,20 @@ class LecturerLeaveFormsView extends StatefulWidget {
 class _LecturerDataState extends State<LecturerLeaveFormsView> {
   int selectedIndex = 0;
   late String leaveFormType = 'PENDING';
+
+  late Utils utils=Utils();
   late FirebaseService firebaseService=FirebaseService();
   late SharedPreferences sharedPreferences=SharedPreferences();
   RealtimeDatabase realtimeDatabase=RealtimeDatabase();
-  late Utils utils=Utils();
+
   late List<String> yearList = [];
   late List<String> streamList = [];
   late DocumentReference? detailsRetrievingRef=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
-  late String? section, branch='', year, stream, staffID;
-  late String? yearCoordinatorStream='', faYear='', faStream='', faSection='',yearCoordinatorYear='',hostelName='',
-      hostelFloor='',hostelType='';
+  late String? faSection, branch='', year, stream, staffID;
+  late String? yearCoordinatorStream='', faYear='', faStream='',yearCoordinatorYear='',hostelName='', hostelFloor='',hostelType='';
   DocumentReference studentLeaveForms = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
 
+  //Spinner list and selected values
   List<String> spinnerOptions1 = [];
   List<String> spinnerOptions2 = [];
   String selectedSpinnerOption1 = '';
@@ -44,35 +46,11 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   @override
   void initState() {
     super.initState();
+    data();
     initializeData();
-  }
-  Future<void> data() async{
-    print('Retrieving the data');
-
-    yearCoordinatorStream = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
-    branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
-    yearCoordinatorYear = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
-    faYear = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
-    faStream = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
-    faSection = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
-    hostelName = await sharedPreferences.getSecurePrefsValue('HOSTEL NAME');
-    hostelFloor = await sharedPreferences.getSecurePrefsValue('HOSTEL FLOOR');
-    hostelType = await sharedPreferences.getSecurePrefsValue('HOSTEL TYPE');
-
-    print('YEAR COORDINATOR STREAM: $yearCoordinatorStream');
-    print('BRANCH: $branch');
-    print('YEAR COORDINATOR YEAR: $yearCoordinatorYear');
-    print('FACULTY ADVISOR YEAR: $faYear');
-    print('FACULTY ADVISOR STREAM: $faStream');
-    print('FACULTY ADVISOR SECTION: $faSection');
-    print('HOSTEL NAME: $hostelName');
-    print('HOSTEL FLOOR: $hostelFloor');
-    print('HOSTEL TYPE: $hostelType');
   }
 
   Future<void> initializeData() async {
-    print('Ref: ${detailsRetrievingRef.toString()}');
-
     if (widget.privilege == 'HOD') {
       isButtonVisible = true;
       isSpinner1Visible = true;
@@ -80,24 +58,20 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
       String? hodYear = await sharedPreferences.getSecurePrefsValue('HOD YEAR');
       yearList = hodYear!.split(',');
-      String? hodStream = await sharedPreferences.getSecurePrefsValue('HOD STREAM');
-      streamList = hodStream!.split(',');
 
-      spinnerOptions1 = streamList;
+      spinnerOptions1 = ['CS','AIML','DS','IOT'];
       spinnerOptions2 = yearList;
-      selectedSpinnerOption1 = streamList.isNotEmpty ? streamList[0] : '';
+      selectedSpinnerOption1 = 'CS';
       selectedSpinnerOption2 = yearList.isNotEmpty ? yearList[0] : '';
 
     } else if(widget.privilege == 'FACULTY ADVISOR' || widget.privilege=='HOSTEL WARDEN'){
-
-
+      //No spinners will be seen
     } else if(widget.privilege == 'YEAR COORDINATOR') {
       isButtonVisible = true;
       isSpinner1Visible = true;
       isSpinner2Visible = true;
 
       yearList = yearCoordinatorYear!.split(',');
-      String? yearCoordinatorStream = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
       streamList = yearCoordinatorStream!.split(',');
 
       spinnerOptions1 = streamList;
@@ -109,18 +83,41 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
       isSpinner1Visible = true;
       isSpinner2Visible = true;
 
-      section = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
-
       spinnerOptions1 = ['SECTION', 'YEAR COORDINATOR'];
       selectedSpinnerOption1 = 'SECTION';
 
-      spinnerOptions2 = [section ?? 'SECTION NOT FOUND'];
+      spinnerOptions2 = [faSection ?? 'SECTION NOT FOUND'];
       selectedSpinnerOption2 = spinnerOptions2[0];
 
-      print('initializeData ${section.toString()}  ${yearCoordinatorYear.toString()}');
+      print('initializeData ${faSection.toString()}  ${yearCoordinatorYear.toString()}');
     } else {
       utils.showToastMessage('UNABLE TO GET THE SPINNER DETAILS ${widget.privilege}', context);
     }
+  }
+
+  Future<void> data() async{
+    print('Retrieving the data');
+
+    yearCoordinatorStream =await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
+    branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
+    yearCoordinatorYear = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
+    faYear = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
+    faStream = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
+    faSection = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
+    hostelName = await sharedPreferences.getSecurePrefsValue('HOSTEL NAME');
+    hostelFloor = await sharedPreferences.getSecurePrefsValue('HOSTEL FLOOR');
+    hostelType = await sharedPreferences.getSecurePrefsValue('HOSTEL TYPE');
+    faSection = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
+
+    print('YEAR COORDINATOR STREAM: $yearCoordinatorStream');
+    print('BRANCH: $branch');
+    print('YEAR COORDINATOR YEAR: $yearCoordinatorYear');
+    print('FACULTY ADVISOR YEAR: $faYear');
+    print('FACULTY ADVISOR STREAM: $faStream');
+    print('FACULTY ADVISOR SECTION: $faSection');
+    print('HOSTEL NAME: $hostelName');
+    print('HOSTEL FLOOR: $hostelFloor');
+    print('HOSTEL TYPE: $hostelType');
   }
 
   void updateRef() {
@@ -194,7 +191,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
                   updateRef();
                   setState(() {
                     selectedSpinnerOption1 = newValue!;
-                    updateSpinner();
+                    onSpinner1Changed(newValue);
                   });
                 },
                 items: spinnerOptions1.map<DropdownMenuItem<String>>((String value) {
@@ -290,6 +287,37 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     );
   }
 
+  Future<void> onSpinner1Changed(String newValue)async{
+    spinnerOptions2.clear();
+    if(widget.privilege=='HOD'){
+      if(newValue=='AIML' || newValue=='CS' || newValue=='DS' || newValue=='IOT'){
+        String? hodYear = await sharedPreferences.getSecurePrefsValue('HOD YEAR');
+        yearList = hodYear!.split(',');
+
+        spinnerOptions2 = yearList;
+        selectedSpinnerOption2 = yearList.isNotEmpty ? yearList[0] : '';
+      }
+    }else if(widget.privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
+      if(newValue=='SECTION'){
+        spinnerOptions2 = [faSection ?? 'SECTION NOT FOUND'];
+        selectedSpinnerOption2 = spinnerOptions2[0];
+      }else if(newValue=='YEAR COORDINATOR'){
+        yearList = yearCoordinatorYear!.split(',');
+        yearList.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
+        spinnerOptions2.addAll(yearList);
+        selectedSpinnerOption2=spinnerOptions2[0];
+      }
+    }else if(widget.privilege=='YEAR COORDINATOR'){
+
+      yearList = yearCoordinatorYear!.split(',');
+      spinnerOptions2 = yearList;
+      selectedSpinnerOption2 = yearList.isNotEmpty ? yearList[0] : '';
+
+    }else{
+      utils.showToastMessage('You are not authorized to change', context);
+    }
+  }
+
   Future<void> getData() async {
     await data();
     await initializeData();
@@ -317,7 +345,6 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     updateRef();
     return buildTab();
   }
-
 
   Future<void> showReport() async{
     List<String> oneWeekDates=utils.getOneWeekDates();
@@ -358,23 +385,6 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
 
         return;
-    }
-  }
-  void updateSpinner(){
-    if(widget.privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
-      if(selectedSpinnerOption1=='SECTION'){
-        isButtonVisible=false;
-        spinnerOptions2.clear();
-        spinnerOptions2.add(section!);
-        selectedSpinnerOption2 = section ?? 'SECTION NOT FOUND';
-      }else if(selectedSpinnerOption1=='YEAR COORDINATOR'){
-        isButtonVisible=true;
-        spinnerOptions2.clear();
-        yearList = yearCoordinatorYear!.split(',');
-        yearList.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
-        spinnerOptions2.addAll(yearList);
-        selectedSpinnerOption2=spinnerOptions2[0];
-      }
     }
   }
 
@@ -495,19 +505,10 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   }
 
   Future<Map<String, dynamic>> retrieveData(Map<String, dynamic> leaveCardData) async {
-    List<String> dataRequired = [
-      'START DATE',
-      'RETURN DATE',
-      'LEAVE ID',
-      'FACULTY ADVISOR APPROVAL',
-      'YEAR COORDINATOR APPROVAL',
-      'HOSTEL WARDEN APPROVAL',
-      'FACULTY ADVISOR DECLINED',
-      'YEAR COORDINATOR DECLINED',
-      'HOSTEL WARDEN DECLINED',
-    ];
+    List<String> dataRequired = ['START DATE', 'RETURN DATE', 'LEAVE ID','VERIFICATION'];
     // Map to store retrieved data
     Map<String, dynamic> retrievedDataMap = {};
+    print('leaveCardData:${leaveCardData.toString()}');
 
     for (MapEntry<String, dynamic> entry in leaveCardData.entries) {
       String key = entry.key;
@@ -516,36 +517,9 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
       // Retrieve data for the current entry
       Map<String, dynamic>? retrievedData = await firebaseService.getValuesFromDocRef(studentLeaveForms, dataRequired);
-      if (retrievedData != null) {
-        // Get the value for a specific key, for example, 'FACULTY ADVISOR APPROVAL'
-        dynamic facultyAdvisorApproval = retrievedData['FACULTY ADVISOR APPROVAL'];
-        dynamic facultyAdvisorDeclined = retrievedData['FACULTY ADVISOR DECLINED'];
-        dynamic yearCoordinatorApproval = retrievedData['YEAR COORDINATOR APPROVAL'];
-        dynamic yearCoordinatorDeclined = retrievedData['YEAR COORDINATOR DECLINED'];
-        dynamic hostelWardenApproval = retrievedData['HOSTEL WARDEN APPROVAL'];
-        dynamic hostelWardenDeclined = retrievedData['HOSTEL WARDEN DECLINED'];
-
-        bool verified = facultyAdvisorApproval && yearCoordinatorApproval && hostelWardenApproval;
-        bool declined = facultyAdvisorDeclined || yearCoordinatorDeclined || hostelWardenDeclined;
-
-        String verification;
-        if (verified) {
-          verification = "APPROVED";
-        } else if (declined) {
-          if (facultyAdvisorDeclined) {
-            verification = 'DECLINED';
-          } else if (yearCoordinatorDeclined) {
-            verification = 'DECLINED';
-          } else {
-            verification = 'DECLINED';
-          }
-        } else {
-          verification = 'PENDING';
-        }
-        retrievedData.addAll({'VERIFIED': verification});
-      }
       retrievedDataMap[key] = retrievedData;
     }
+
     for (MapEntry<String, dynamic> entry in retrievedDataMap.entries) {
       String key = entry.key;
       dynamic value = entry.value;

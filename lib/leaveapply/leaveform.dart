@@ -25,7 +25,11 @@ class _LeaveFormState extends State<LeaveForm> {
   TextEditingController reasonController = TextEditingController();
   TextEditingController studentMobileController = TextEditingController();
   TextEditingController parentMobileController = TextEditingController();
+
   Utils utils=Utils();
+  FirebaseService firebaseService=FirebaseService();
+  RealtimeDatabase realtimeDatabase=RealtimeDatabase();
+  SharedPreferences secureStorage = SharedPreferences();
   TwilioFlutter twilioFlutter=TwilioFlutter(
       accountSid : 'AC20193099ffdd58f19dddcd9889fe39dd', // replace *** with Account SID
       authToken : '9dad3924d614df3f2423c479481fe4dd',  // replace xxx with Auth Token
@@ -100,7 +104,9 @@ class _LeaveFormState extends State<LeaveForm> {
               SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () async {
-                  onSubmitBUttonPressed();
+
+                  onSubmitButtonPressed();
+
                 },
                 child: Text('Submit'),
               ),
@@ -111,14 +117,9 @@ class _LeaveFormState extends State<LeaveForm> {
     );
   }
 
-  Future<void> onSubmitBUttonPressed() async {
+  Future<void> onSubmitButtonPressed() async {
     utils.showDefaultLoading();
     FocusScope.of(context).unfocus();
-    FirebaseService firebaseService = FirebaseService();
-    RealtimeDatabase realtimedatabase=RealtimeDatabase();
-    SharedPreferences secureStorage = SharedPreferences();
-
-    await realtimedatabase.incrementLeaveCount('KLU/LEAVE COUNT');
 
     String? year=await secureStorage.getSecurePrefsValue("YEAR");
     String? branch=await secureStorage.getSecurePrefsValue("BRANCH");
@@ -128,28 +129,31 @@ class _LeaveFormState extends State<LeaveForm> {
     String? stream=await secureStorage.getSecurePrefsValue("STREAM");
     String? section=await secureStorage.getSecurePrefsValue("SECTION");
 
-    int leaveid= await realtimedatabase.getLeaveCount('KLU/LEAVE COUNT');
-    String leavecount=leaveid.toString();
+    await realtimeDatabase.incrementLeaveCount('KLU/LEAVE COUNT');
 
-    print('leave count: ${leavecount.toString()}');
+    int leaveID= await realtimeDatabase.getLeaveCount('KLU/LEAVE COUNT');
+    String leaveCount=leaveID.toString();
 
-    await realtimedatabase.incrementLeaveCount('KLU/${utils.getTime()}/$year/$branch/$stream/$section/PENDING');
-    await realtimedatabase.incrementLeaveCount('KLU/${utils.getTime()}/$year/$branch/$stream/$section/APPLIED');
+    await realtimeDatabase.incrementLeaveCount('KLU/${utils.getTime()}/$year/$branch/$stream/$section/PENDING');
+    await realtimeDatabase.incrementLeaveCount('KLU/${utils.getTime()}/$year/$branch/$stream/$section/APPLIED');
 
     String reason = reasonController.text;
-    if(reason.length<=20){
+    String studentMobileNumber = studentMobileController.text;
+    String parentMobileNumber = parentMobileController.text;
+    String startDate=startDateController.text;
+    String returnDate=endDateController.text;
+
+    if(reason.length<=10){
       utils.showToastMessage('REASON SHOULD BE ATLEAST 20 LETTERS', context);
       EasyLoading.dismiss();
       return;
     }
     if(utils.doesContainEmoji(reason)){
-      utils.showToastMessage('REASON MUST NOT CONTAIN EMOJIS', context);
+      utils.showToastMessage('REASON MUST NOT CONTAIN OTHER THAN LETTERS', context);
       EasyLoading.dismiss();
       return;
     }
-    String studentMobileNumber = studentMobileController.text;
-    String parentMobileNumber = parentMobileController.text;
-    if(!utils.isValidMobileNumber(studentMobileNumber) || !utils.isValidMobileNumber(parentMobileNumber)){
+    if(!utils.isValidMobileNumber(studentMobileNumber) ||  !utils.isValidMobileNumber(parentMobileNumber)){
       utils.showToastMessage('ENTER VALID NUMBER', context);
       EasyLoading.dismiss();
       return;
@@ -159,10 +163,8 @@ class _LeaveFormState extends State<LeaveForm> {
       EasyLoading.dismiss();
       return;
     }
-    String startdate=startDateController.text;
-    String enddate=endDateController.text;
 
-    if(startdate.isEmpty || enddate.isEmpty || reason.isEmpty || studentMobileNumber.isEmpty || parentMobileNumber.isEmpty){
+    if(startDate.isEmpty || returnDate.isEmpty || reason.isEmpty || studentMobileNumber.isEmpty || parentMobileNumber.isEmpty){
       utils.showToastMessage('NO EMPTY DATA SHOULD BE THERE', context);
       EasyLoading.dismiss();
       return;
@@ -177,27 +179,18 @@ class _LeaveFormState extends State<LeaveForm> {
 
     Map<String,dynamic> data={};
 
-    data.addAll({'LEAVE ID': leavecount,'REGISTRATION NUMBER': regNo,'PARENTS MOBILE NUMBER': parentMobileNumber,'STUDENT MOBILE NUMBER': studentMobileNumber,
-      'REASON': reason,'START DATE': startdate,'RETURN DATE':enddate,'FACULTY ADVISOR APPROVAL': false,'YEAR COORDINATOR APPROVAL':false,
+    data.addAll({'LEAVE ID': leaveCount,'REGISTRATION NUMBER': regNo,'PARENTS MOBILE NUMBER': parentMobileNumber,'STUDENT MOBILE NUMBER': studentMobileNumber,
+      'REASON': reason,'START DATE': startDate,'RETURN DATE':returnDate,'FACULTY ADVISOR APPROVAL': false,'YEAR COORDINATOR APPROVAL':false,
         'HOSTEL WARDEN APPROVAL' :false,'FACULTY ADVISOR DECLINED' :false, 'YEAR COORDINATOR DECLINED' : false,'HOSTEL WARDEN DECLINED' : false,'VERIFICATION':'PENDING'});
 
-    CollectionReference studentPendingRef=FirebaseFirestore.instance.collection('/$COLLECTION_NAME/STUDENT DETAILS/$year/$branch/$stream/$regNo/LEAVE FORMS');
+    DocumentReference studentRef=FirebaseFirestore.instance.doc('/$COLLECTION_NAME/STUDENT DETAILS/$year/$branch/$stream/$regNo');
+    await firebaseService.uploadDataToCollection(studentRef.collection('LEAVE FORMS'), leaveCount, data);
+    DocumentReference classPendingRef=FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$year/$branch/$stream/$section/LEAVE FORMS/PENDING');
+    await firebaseService.storeDocumentReference(classPendingRef,leaveCount,studentRef);
 
-    print('Student Pending Reference: ${studentPendingRef.toString()}');
-    await firebaseService.uploadDataToCollection(studentPendingRef, leavecount, data);
-
-    DocumentReference studentRef=FirebaseFirestore.instance.doc("$COLLECTION_NAME/STUDENT DETAILS/$year/$branch/$stream/$regNo");
-    DocumentReference faPendingRef=FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$year/$branch/$stream/$section/LEAVE FORMS/PENDING');
-
-    print('Student Reference: ${studentRef.toString()}');
-    print('Faculty Advisor Reference: ${faPendingRef.toString()}');
-
-    await firebaseService.storeDocumentReference(faPendingRef,leavecount,studentRef);
-    // Pop the current route and any previous StudentsLeaveApply routes
     Navigator.pop(context);
-
-    utils.showToastMessage("The Leave Form is Sent to Faculty Advisor ${faName!.toUpperCase()} For approval", context);
-
+    utils.showToastMessage("The Leave Form is Sent to ${faName!.toUpperCase()} For approval", context);
+    EasyLoading.dismiss();
   }
 
   Future<void> selectDate(BuildContext context, TextEditingController controller, bool isStartDate) async {
