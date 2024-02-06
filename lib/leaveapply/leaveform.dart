@@ -6,6 +6,7 @@ import 'package:klu_flutter/leaveapply/studentformsview.dart';
 import 'package:klu_flutter/model/model.dart';
 import 'package:klu_flutter/utils/RealtimeDatabase.dart';
 import 'package:klu_flutter/utils/utils.dart';
+import 'package:twilio_flutter/twilio_flutter.dart';
 import '../utils/Firebase.dart';
 import '../utils/shraredprefs.dart';
 
@@ -25,6 +26,11 @@ class _LeaveFormState extends State<LeaveForm> {
   TextEditingController studentMobileController = TextEditingController();
   TextEditingController parentMobileController = TextEditingController();
   Utils utils=Utils();
+  TwilioFlutter twilioFlutter=TwilioFlutter(
+      accountSid : 'AC20193099ffdd58f19dddcd9889fe39dd', // replace *** with Account SID
+      authToken : '9dad3924d614df3f2423c479481fe4dd',  // replace xxx with Auth Token
+      twilioNumber : '+12403923852'  // replace .... with Twilio Number
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -161,6 +167,13 @@ class _LeaveFormState extends State<LeaveForm> {
       EasyLoading.dismiss();
       return;
     }
+
+    // String number='+91${parentMobileNumber.trim()}';
+    // print('toNumber: ${number}');
+    //
+    // twilioFlutter.sendSMS(
+    //     toNumber : number,
+    //     messageBody : 'This is from MyUniv leave applied');
 
     Map<String,dynamic> data={};
 

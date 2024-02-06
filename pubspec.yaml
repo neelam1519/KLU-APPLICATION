@@ -41,7 +41,7 @@ dependencies:
   flutter_easyloading: ^3.0.5
   flutter_secure_storage: ^9.0.0
   cloud_firestore: ^4.14.0
-  http: ^1.1.2
+  http: ^0.13.6
   firebase_database: ^10.4.0
   connectivity_plus: ^5.0.2
   loading_animation_widget: ^1.2.0+4
@@ -58,6 +58,7 @@ dependencies:
   firebase_analytics: ^10.8.4
   flutter_launcher_icons: ^0.13.1
   flutter_local_notifications: ^16.3.2
+  twilio_flutter: ^0.0.9
 
 dev_dependencies:
   flutter_test:

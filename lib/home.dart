@@ -18,6 +18,7 @@ import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:twilio_flutter/twilio_flutter.dart';
 
 class Home extends StatefulWidget {
   final String loggedUser;
@@ -34,6 +35,11 @@ class _HomeState extends State<Home> {
   FirebaseService firebaseService = FirebaseService();
   SharedPreferences sharedPreferences = SharedPreferences();
   final FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
+  TwilioFlutter twilioFlutter=TwilioFlutter(
+      accountSid : 'AC20193099ffdd58f19dddcd9889fe39dd', // replace *** with Account SID
+      authToken : '9dad3924d614df3f2423c479481fe4dd',  // replace xxx with Auth Token
+      twilioNumber : '+12403923852'  // replace .... with Twilio Number
+  );
   String? fcmToken;
 
   String? fullname;
@@ -43,7 +49,12 @@ class _HomeState extends State<Home> {
 
   @override
   void initState() {
+
     //utils.showToastMessage(widget.loggedUser, context);
+    // twilioFlutter.sendSMS(
+    //     toNumber : '+918501070702',
+    //     messageBody : 'This is from MyUniv');
+
     utils.showDefaultLoading();
     requestNotificationPermissions();
     loadProfileImageBytes().then((bytes) {
@@ -258,8 +269,8 @@ class _HomeState extends State<Home> {
       DocumentReference documentReference =
       FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
 
-      FirebaseMessaging.instance.onTokenRefresh.listen((String? newToken) async {
-        print('FCM Token Refreshed: $newToken');
+      FirebaseMessaging.instance.getToken().then((token)  async {
+        print('FCM Token Refreshed: $token');
         // Update the token on your server or perform other necessary tasks
 
         if (privilege != null) {
@@ -283,7 +294,7 @@ class _HomeState extends State<Home> {
                   'UNABLE TO GET THE REFERENCE DETAILS', context);
           }
 
-          Map<String, String> data = {'FCM TOKEN': newToken ?? ''};
+          Map<String, String> data = {'FCM TOKEN': token ?? ''};
           await firebaseService.uploadMapDetailsToDoc(documentReference, data);
           print('FCM TOKEN IS UPDATED SUCCESSFULLY');
         }
