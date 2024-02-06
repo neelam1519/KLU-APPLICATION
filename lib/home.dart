@@ -34,8 +34,7 @@ class _HomeState extends State<Home> {
   FirebaseService firebaseService = FirebaseService();
   SharedPreferences sharedPreferences = SharedPreferences();
   final FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
-  final PushNotificationService _notificationService = PushNotificationService();
-
+  String? fcmToken;
 
   String? fullname;
   String? email;
@@ -44,17 +43,16 @@ class _HomeState extends State<Home> {
 
   @override
   void initState() {
-    _notificationService.initialize();
     //utils.showToastMessage(widget.loggedUser, context);
     utils.showDefaultLoading();
     requestNotificationPermissions();
     loadProfileImageBytes().then((bytes) {
-      setState(() {
-        imageBytes = bytes;
-      });
+    storeFcmToken();
+    setState(() {
+      imageBytes = bytes;
+    });
     });
     getDetails();
-    sendNotification();
     super.initState();
   }
 
@@ -190,11 +188,10 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> getDetails() async {
-    print("getDetails");
 
+    print("getDetails");
     fullname = await sharedPreferences.getSecurePrefsValue("NAME");
     email = await sharedPreferences.getSecurePrefsValue("MAIL ID");
-    DocumentReference documentReference;
 
     print('User details retrieved and stored successfully!');
     EasyLoading.dismiss();
@@ -228,16 +225,6 @@ class _HomeState extends State<Home> {
     }
   }
 
-  void sendNotification(){
-
-    final DocumentReference leaveFormsCollection = FirebaseFirestore.instance.doc('KLU/STUDENT DETAILS/3/CSE/DS/99210041602/LEAVE FORMS/3fjk');
-    print('document path:${leaveFormsCollection.path}');
-    FirebaseService firebaseService=FirebaseService();
-    Map<String,String> data={'REGISTRATION NUMBER':'99210041602','TOKEN':'edfNLXodToSzG8teaoUEwH:APA91bGirZ4PSemlrh13r7Dn4_3B5_KHIBDoqgaqHM8Ox6cKPmrtn-5jatpTA04nFONsxNUog49bQ7bDFvR-zRxts6fQ2ZqjdWmZrcum20pfkbTA34bvzzr7kgj8lrF817zStMyKpqDY'};
-    firebaseService.uploadMapDetailsToDoc(leaveFormsCollection, data);
-
-  }
-
   Future<void> signOut(BuildContext context) async {
     try {
       utils.clearSecureStorage();
@@ -252,4 +239,60 @@ class _HomeState extends State<Home> {
       EasyLoading.dismiss();
     }
   }
+
+  Future<void> storeFcmToken() async {
+    try {
+      String? section, branch = '', year, stream, staffID, regNo;
+      String? hostelName = '', hostelFloor = '';
+
+      branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
+      hostelName = await sharedPreferences.getSecurePrefsValue('HOSTEL NAME');
+      hostelFloor = await sharedPreferences.getSecurePrefsValue('HOSTEL FLOOR');
+      staffID = await sharedPreferences.getSecurePrefsValue('STAFF ID');
+      year = await sharedPreferences.getSecurePrefsValue("YEAR");
+      regNo = await sharedPreferences.getSecurePrefsValue("REGISTRATION NUMBER");
+      stream = await sharedPreferences.getSecurePrefsValue("STREAM");
+
+      String? privilege =
+      await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
+      DocumentReference documentReference =
+      FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
+
+      FirebaseMessaging.instance.onTokenRefresh.listen((String? newToken) async {
+        print('FCM Token Refreshed: $newToken');
+        // Update the token on your server or perform other necessary tasks
+
+        if (privilege != null) {
+          switch (privilege) {
+            case 'HOD':
+            case 'FACULTY ADVISOR':
+            case 'YEAR COORDINATOR':
+            case 'FACULTY ADVISOR AND YEAR COORDINATOR':
+              documentReference =
+                  FirebaseFirestore.instance.doc('KLU/STAFF DETAILS/$staffID');
+              break;
+            case 'STUDENT':
+              documentReference = FirebaseFirestore.instance
+                  .doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo/');
+              break;
+            case 'HOSTEL WARDEN':
+            // Handle HOSTEL WARDEN case
+              break;
+            default:
+              utils.showToastMessage(
+                  'UNABLE TO GET THE REFERENCE DETAILS', context);
+          }
+
+          Map<String, String> data = {'FCM TOKEN': newToken ?? ''};
+          await firebaseService.uploadMapDetailsToDoc(documentReference, data);
+          print('FCM TOKEN IS UPDATED SUCCESSFULLY');
+        }
+      });
+    } catch (e) {
+      // Handle any errors that occur during the execution
+      print('Error in storeFcmToken: $e');
+      // You may want to show a message or perform additional error handling here
+    }
+  }
+
 }

@@ -27,9 +27,8 @@ class RealtimeDatabase {
   }
 
   Future<int> getLeaveCount(String path) async {
-    await Firebase.initializeApp(); // Ensure Firebase is initialized
 
-    final leaveCountRef = FirebaseDatabase.instance.ref().child(path);
+    final leaveCountRef = databaseReference.child(path);
 
     final snapshot = await leaveCountRef.get();
     int leaveCount = (snapshot.value ?? 0) as int; // Cast to int

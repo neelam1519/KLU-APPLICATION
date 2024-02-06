@@ -96,7 +96,7 @@ class _UserAccountState extends State<UserAccount> {
     print('accountDocRef: ${detailsRetrievingRef.path}');
 
     Map<String, dynamic> userDetails = await firebaseService.getMapDetailsFromDoc(detailsRetrievingRef);
-    userDetails.remove('TOKEN');
+    userDetails.remove('FCM TOKEN');
     userDetails.remove('UID');
 
     return userDetails;

@@ -407,6 +407,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           );
         } else {
           Map<String, dynamic> leaveCardData = snapshot.data!.data() as Map<String, dynamic>;
+          print('LEAVECARD DATA: ${leaveCardData.toString()}');
 
           return FutureBuilder<Map<String, dynamic>>(
             future: retrieveData(leaveCardData),

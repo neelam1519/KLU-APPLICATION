@@ -6,15 +6,24 @@ import 'package:klu_flutter/utils/shraredprefs.dart';
 
 class PushNotificationService {
   FirebaseMessaging _fcm = FirebaseMessaging.instance;
-  FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  final _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
     print('pushNotificationService is started');
+    await setup();
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print('Got a message whilst in the foreground!');
       print('Message data: ${message.data}');
 
       if (message.notification != null) {
+
+        String title = message.notification?.title ?? 'Default Title';
+        String body = message.notification?.body ?? 'Default Body';
+
+        showLocalNotification(title, body);
+
+        print("data: $title  $body");
+
         print('Message also contained a notification: ${message.notification}');
       }
     });
@@ -24,9 +33,37 @@ class PushNotificationService {
     await getToken();
   }
 
+  Future<void> setup() async {
+    const androidInitializationSetting = AndroidInitializationSettings(
+        '@mipmap/ic_launcher');
+    const iosInitializationSetting = DarwinInitializationSettings();
+    const initSettings = InitializationSettings(
+        android: androidInitializationSetting, iOS: iosInitializationSetting);
+    await _flutterLocalNotificationsPlugin.initialize(initSettings);
+  }
+
+  void showLocalNotification(String title, String body) {
+    const androidNotificationDetail = AndroidNotificationDetails('0', // channel Id
+        'general' // channel
+    );
+    const iosNotificatonDetail = DarwinNotificationDetails();
+    const notificationDetails = NotificationDetails(
+      iOS: iosNotificatonDetail,
+      android: androidNotificationDetail,
+    );
+    _flutterLocalNotificationsPlugin.show(0, title, body, notificationDetails);
+  }
+
+
   Future<void> backgroundHandler(RemoteMessage message) async {
     print('Background message received');
     print('Handling a background message ${message.messageId}');
+
+    String title = message.data['title'] ?? 'Default Title';
+    String body = message.data['body'] ?? 'Default Body';
+    showLocalNotification(title, body);
+    print("data $title  $body");
+
   }
 
   Future<String?> getToken() async {
@@ -39,53 +76,4 @@ class PushNotificationService {
       return null;
     }
   }
-
-  Future<void> updateToken(String token) async{
-    SharedPreferences sharedPreferences=SharedPreferences();
-    FirebaseService firebaseService=FirebaseService();
-    String? yearCoordinatorStream='', faYear='', faStream='', faSection='',yearCoordinatorYear='',hostelName='',
-        hostelFloor='',hostelType='';
-
-    String? privilege=await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
-    String? year=await sharedPreferences.getSecurePrefsValue('YEAR');
-    String? stream=await sharedPreferences.getSecurePrefsValue('STREAM');
-    String? regNo=await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
-    String? branch=await sharedPreferences.getSecurePrefsValue('BRANCH');
-    faYear = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
-    faStream = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
-    yearCoordinatorStream = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
-    branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
-    yearCoordinatorYear = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
-    faSection = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
-    hostelName = await sharedPreferences.getSecurePrefsValue('HOSTEL NAME');
-    hostelFloor = await sharedPreferences.getSecurePrefsValue('HOSTEL FLOOR');
-    hostelType = await sharedPreferences.getSecurePrefsValue('HOSTEL TYPE');
-    String? staffID = await sharedPreferences.getSecurePrefsValue('STAFF ID');
-
-    sharedPreferences.storeValueInSecurePrefs('TOKEN', token);
-    print('privilege: ${privilege}');
-
-    DocumentReference documentReference=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
-    if(privilege=='STUDENT'){
-      documentReference=FirebaseFirestore.instance.doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo');
-      Map<String,String> data={'TOKEN': token};
-      await firebaseService.uploadMapDetailsToDoc(documentReference, data);
-
-    }else if(privilege=='FACULTY ADVISOR' || privilege == 'YEAR COORDINATOR' || privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR'){
-
-      documentReference==FirebaseFirestore.instance.doc('KLU/STAFF DETAILS/$branch/$staffID');
-      Map<String,String> data={'TOKEN': token};
-      await firebaseService.uploadMapDetailsToDoc(documentReference, data);
-
-    }else if(privilege=='HOSTEL WARDEN'){
-
-      documentReference=FirebaseFirestore.instance.doc('KLU/HOSTELS STAFF DETAILS/$hostelName/$staffID');
-      Map<String,String> data={'TOKEN': token};
-      await firebaseService.uploadMapDetailsToDoc(documentReference, data);
-
-    }
-
-    print('Document Reference: ${documentReference.path}');
-  }
-
 }

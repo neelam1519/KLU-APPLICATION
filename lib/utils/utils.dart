@@ -206,4 +206,27 @@ class Utils {
 
     return formattedDates;
   }
+
+  String intToRoman(int num) {
+    if (num < 1 || num > 3999) {
+      // Handle out-of-range values
+      return 'Out of range (1-3999)';
+    }
+
+    // Roman numeral symbols and their values
+    final List<String> romanSymbols = ['I', 'IV', 'V', 'IX', 'X', 'XL', 'L', 'XC', 'C', 'CD', 'D', 'CM', 'M'];
+    final List<int> romanValues = [1, 4, 5, 9, 10, 40, 50, 90, 100, 400, 500, 900, 1000];
+
+    String result = '';
+    int i = 12; // Start from the highest value
+
+    while (num > 0) {
+      int div = num ~/ romanValues[i];
+      num %= romanValues[i];
+      result += romanSymbols[i] * div;
+      i--;
+    }
+
+    return result;
+  }
 }

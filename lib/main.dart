@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -57,9 +58,11 @@ class MyApp extends StatelessWidget {
 }
 
 class MyAuthenticationCheck extends StatelessWidget {
+  final PushNotificationService _notificationService = PushNotificationService();
 
   @override
   Widget build(BuildContext context) {
+    _notificationService.initialize();
 
     return FutureBuilder(
       // Check the authentication state
@@ -153,7 +156,9 @@ class MyHomePage extends StatelessWidget {
         if (user.email != null && user.email!.endsWith("@klu.ac.in")) {
           final String email = googleSignInAccount.email ?? "";
           String? userId = user.uid;
-          String? token = await user.getIdToken();
+          String? fcmToken = await FirebaseMessaging.instance.getToken();
+
+          print('FCM token login page: ${fcmToken.toString()}');
 
           Map<String,String> data={};
           String id=removeDomainFromEmail(email);
@@ -234,14 +239,22 @@ class MyHomePage extends StatelessWidget {
               fastaffid = details['STAFF ID']!;
               String slot = details['SLOT']!;
               stream = details['STREAM']!;
-
               year=utils.romanToInteger(year).toString();
               slot=utils.romanToInteger(slot).toString();
+              details.clear();
+
+              searchData.addAll({'STREAM':stream.trim(),'YEAR': utils.intToRoman(int.parse(year)),'BRANCH': branch.trim()});
+              print('data: ${searchData.toString()}');
+              details = await downloadedDetail('ADMINS', 'ADMINS', searchData);
+              searchData.clear();
+
+              String? yearStaffID=details['STAFF ID'];
+              print('year coordinator staff id: ${yearStaffID}');
 
               documentReference = FirebaseFirestore.instance.doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$id');
               data.addAll({
                 'UID': userId.trim(),
-                'TOKEN': token ?? '',
+                'FCM TOKEN': fcmToken ?? '',
                 'BRANCH': branch.trim(),
                 'STREAM': stream.trim(),
                 'NAME': name.trim(),
@@ -252,6 +265,7 @@ class MyHomePage extends StatelessWidget {
                 'FACULTY ADVISOR NAME': faname.trim(),
                 'FACULTY ADVISOR MAIL ID': famailid.trim(),
                 'FACULTY ADVISOR STAFF ID': fastaffid.trim(),
+                'YEAR COORDINATOR STAFF ID':yearStaffID!.trim(),
                 'SLOT': slot.trim(),
                 'HOSTEL NAME': 'BHARATHI MENS HOSTEL',
                 'HOSTEL TYPE': 'NORMAL',
@@ -320,7 +334,7 @@ class MyHomePage extends StatelessWidget {
                 yearCoordinatorYear = updatedYearList.join(',');
                 print('yearCoordinatorYear: $yearCoordinatorYear');
 
-                data.addAll({'UID': userId.trim(), 'TOKEN': token ?? '', 'PRIVILEGE': privilege, 'NAME': name, 'BRANCH': branch.trim(), 'MOBILE NUMBER': mobileNumber.trim(),
+                data.addAll({'UID': userId.trim(), 'FCM TOKEN': fcmToken ?? '', 'PRIVILEGE': privilege, 'NAME': name, 'BRANCH': branch.trim(), 'MOBILE NUMBER': mobileNumber.trim(),
                   'STAFF ID': staffID.trim(), 'MAIL ID': email, 'YEAR COORDINATOR YEAR': yearCoordinatorYear.trim(), 'YEAR COORDINATOR STREAM': yearCoordinatorStream.trim(),
                   'FACULTY ADVISOR STREAM': facultyAdvisorStream.trim(), 'FACULTY ADVISOR YEAR': facultyAdvisorYear.trim(), 'FACULTY ADVISOR SECTION': facultyAdvisorSection.trim()});
 
@@ -341,7 +355,7 @@ class MyHomePage extends StatelessWidget {
                 }
                 slot=utils.romanToInteger(slot).toString();
 
-                data.addAll({'UID': userId.trim(), 'TOKEN': token ?? '', 'PRIVILEGE': privilege.trim(), 'NAME': name, 'BRANCH': branch.trim(), 'MOBILE NUMBER': mobileNumber,
+                data.addAll({'UID': userId.trim(), 'FCM TOKEN': fcmToken ?? '', 'PRIVILEGE': privilege.trim(), 'NAME': name, 'BRANCH': branch.trim(), 'MOBILE NUMBER': mobileNumber,
                   'STAFF ID': staffID, 'MAIL ID': email.trim(), 'FACULTY ADVISOR STREAM': facultyAdvisorStream.trim(), 'FACULTY ADVISOR SECTION': facultyAdvisorSection.trim(),
                   'FACULTY ADVISOR YEAR': facultyAdvisorYear.trim(), 'SLOT': slot.trim()
                 });
@@ -373,7 +387,7 @@ class MyHomePage extends StatelessWidget {
                 if (privilege == 'YEAR COORDINATOR') {
                   data.addAll({
                     'UID': userId.trim(),
-                    'TOKEN': token ?? '',
+                    'FCM TOKEN': fcmToken ?? '',
                     'PRIVILEGE': privilege.trim(),
                     'NAME': name.trim(),
                     'BRANCH': branch.trim(),
@@ -385,7 +399,7 @@ class MyHomePage extends StatelessWidget {
                 } else if (privilege == 'HOD') {
                   data.addAll({
                     'UID': userId,
-                    'TOKEN': token ?? '',
+                    'FCM TOKEN': fcmToken ?? '',
                     'PRIVILEGE': privilege.trim(),
                     'NAME': name.trim(),
                     'BRANCH': branch.trim(),

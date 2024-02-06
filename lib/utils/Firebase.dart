@@ -48,32 +48,6 @@ class FirebaseService {
   }
 
 
-  Future<void> uploadStudentLeaveData(StudentLeave leaveData,DocumentReference documentReference, String leaveid) async {
-    try {
-      await documentReference.set({
-        leaveData.leaveid: {
-          'PARENT MOBILE NUMBER': leaveData.parentsMobileNumber,
-          'STUDENT MOBILE NUMBER': leaveData.studentMobileNumber,
-          'REASON': leaveData.reason,
-          'FILE LINK': leaveData.fileLink,
-          'START DATE': leaveData.startdate,
-          'RETURN DATE': leaveData.enddate,
-          'FACULTY ADVISOR APPROVAL': false,
-          'YEAR COORDINATOR APPROVAL': false,
-          'HOSTEL WARDEN APPROVAL': false,
-          'FACULTY ADVISOR DECLINED': false,
-          'YEAR COORDINATOR DECLINED': false,
-          'HOSTEL WARDEN DECLINED': false,
-          'Date': FieldValue.serverTimestamp(),
-        },
-      }, SetOptions(merge: true));
-
-      print('Data uploaded successfully!');
-    } catch (error) {
-      print('Error uploading data: $error');
-    }
-  }
-
   Future<UserDetails> getUserDetails(DocumentReference documentReference) async {
     try {
       DocumentSnapshot documentSnapshot = await documentReference.get();
@@ -467,6 +441,28 @@ class FirebaseService {
     } catch (error) {
       print('Error updating document field: $error');
       // Handle the error as needed
+    }
+  }
+
+  Future<dynamic> getSpecificFieldValue(DocumentReference documentReference, String field) async {
+    try {
+      // Get the document snapshot
+      DocumentSnapshot snapshot = await documentReference.get();
+
+      // Check if the document exists
+      if (snapshot.exists) {
+        // Replace "your_field" with the actual field name
+        dynamic fieldValue = snapshot.get(field);
+
+        // Return the field value
+        return fieldValue;
+      } else {
+        print("Document does not exist");
+        return null; // or throw an exception, depending on your use case
+      }
+    } catch (e) {
+      print("Error getting document: $e");
+      return null; // or throw an exception, depending on your use case
     }
   }
 

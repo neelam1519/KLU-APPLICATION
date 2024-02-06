@@ -15,7 +15,7 @@ class LeaveForm extends StatefulWidget {
 }
 
 class _LeaveFormState extends State<LeaveForm> {
-  final GlobalKey<State> _keyLoader = new GlobalKey<State>();
+
   String COLLECTION_NAME="KLU";
   DateTime? selectedStartDate;
   // Controllers for text fields
@@ -122,9 +122,10 @@ class _LeaveFormState extends State<LeaveForm> {
     String? stream=await secureStorage.getSecurePrefsValue("STREAM");
     String? section=await secureStorage.getSecurePrefsValue("SECTION");
 
-    int leaveid= await realtimedatabase.getLeaveCount('KU/LEAVE COUNT');
+    int leaveid= await realtimedatabase.getLeaveCount('KLU/LEAVE COUNT');
     String leavecount=leaveid.toString();
 
+    print('leave count: ${leavecount.toString()}');
 
     await realtimedatabase.incrementLeaveCount('KLU/${utils.getTime()}/$year/$branch/$stream/$section/PENDING');
     await realtimedatabase.incrementLeaveCount('KLU/${utils.getTime()}/$year/$branch/$stream/$section/APPLIED');
@@ -163,7 +164,7 @@ class _LeaveFormState extends State<LeaveForm> {
 
     Map<String,dynamic> data={};
 
-    data.addAll({'LEAVE ID': leavecount,'PARENTS MOBILE NUMBER': parentMobileNumber,'STUDENT MOBILE NUMBER': studentMobileNumber,
+    data.addAll({'LEAVE ID': leavecount,'REGISTRATION NUMBER': regNo,'PARENTS MOBILE NUMBER': parentMobileNumber,'STUDENT MOBILE NUMBER': studentMobileNumber,
       'REASON': reason,'START DATE': startdate,'RETURN DATE':enddate,'FACULTY ADVISOR APPROVAL': false,'YEAR COORDINATOR APPROVAL':false,
         'HOSTEL WARDEN APPROVAL' :false,'FACULTY ADVISOR DECLINED' :false, 'YEAR COORDINATOR DECLINED' : false,'HOSTEL WARDEN DECLINED' : false,'VERIFICATION':'PENDING'});
 
