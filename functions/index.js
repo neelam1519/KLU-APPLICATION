@@ -58,7 +58,7 @@ exports.sendNotificationOnDataUpdate = functions.firestore
 
       const studentRef = await admin.firestore().doc(`KLU/STUDENT DETAILS/${context.params.year}/${context.params.branch}/${context.params.stream}/${regNo}`).get();
       const studentDetails = studentRef.data();
-      const studentToken = studentDetails["FCM TOKEN"];
+      const studentToken = studentDetails["FCM TOKEN"] || "";
 
       const branch = studentDetails["BRANCH"];
       const yearStaffID = studentDetails["YEAR COORDINATOR STAFF ID"];
@@ -66,7 +66,7 @@ exports.sendNotificationOnDataUpdate = functions.firestore
       const yearStaffRef = await admin.firestore().doc(`KLU/STAFF DETAILS/${branch}/${yearStaffID}`).get();
       const yearStaffDetails = yearStaffRef.data();
 
-      const yearCoordinatorToken = yearStaffDetails["FCM TOKEN"];
+      const yearCoordinatorToken = yearStaffDetails["FCM TOKEN"] || "";
 
       // Send different notifications based on different conditions
       if (faApprovalChanged) {

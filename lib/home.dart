@@ -268,7 +268,7 @@ class _HomeState extends State<Home> {
         case 'FACULTY ADVISOR':
         case 'YEAR COORDINATOR':
         case 'FACULTY ADVISOR AND YEAR COORDINATOR':
-          documentReference = firebaseFirestore.doc('KLU/STAFF DETAILS/$staffID');
+        documentReference = FirebaseFirestore.instance.doc('KLU/STAFF DETAILS/$branch/$staffID');
           break;
         case 'STUDENT':
           documentReference = firebaseFirestore.doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo/');
@@ -280,6 +280,8 @@ class _HomeState extends State<Home> {
           print('Unknown privilege: $privilege');
           return;
       }
+
+      print('fcmTokenRef: ${documentReference.toString()}');
 
       // Update FCM token in Firestore
       await documentReference.set({'FCM TOKEN': token}, SetOptions(merge: true));

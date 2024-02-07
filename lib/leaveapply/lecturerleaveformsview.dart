@@ -27,8 +27,12 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
   late List<String> yearList = [];
   late List<String> streamList = [];
+  late final Map<dynamic,List<Map<dynamic, dynamic>>> dataList={};
+  List<String> oneWeekDates=[];
+
+  late String textAboveTable='';
   late DocumentReference? detailsRetrievingRef=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
-  late String? faSection, branch='', year, stream, staffID;
+  late String? faSection, branch='', year, stream, staffID,hodYear;
   late String? yearCoordinatorStream='', faYear='', faStream='',yearCoordinatorYear='',hostelName='', hostelFloor='',hostelType='';
   DocumentReference studentLeaveForms = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
 
@@ -46,17 +50,21 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   @override
   void initState() {
     super.initState();
-    data();
-    initializeData();
+    data().then((_) {
+      initializeSpinners();
+      setState(() {
+
+      });
+    });
   }
 
-  Future<void> initializeData() async {
+  Future<void> initializeSpinners() async {
+
     if (widget.privilege == 'HOD') {
       isButtonVisible = true;
       isSpinner1Visible = true;
       isSpinner2Visible = true;
 
-      String? hodYear = await sharedPreferences.getSecurePrefsValue('HOD YEAR');
       yearList = hodYear!.split(',');
 
       spinnerOptions1 = ['CS','AIML','DS','IOT'];
@@ -85,7 +93,6 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
       spinnerOptions1 = ['SECTION', 'YEAR COORDINATOR'];
       selectedSpinnerOption1 = 'SECTION';
-
       spinnerOptions2 = [faSection ?? 'SECTION NOT FOUND'];
       selectedSpinnerOption2 = spinnerOptions2[0];
 
@@ -98,6 +105,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   Future<void> data() async{
     print('Retrieving the data');
 
+    hodYear = await sharedPreferences.getSecurePrefsValue('HOD YEAR');
     yearCoordinatorStream =await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
     branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
     yearCoordinatorYear = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
@@ -108,6 +116,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     hostelFloor = await sharedPreferences.getSecurePrefsValue('HOSTEL FLOOR');
     hostelType = await sharedPreferences.getSecurePrefsValue('HOSTEL TYPE');
     faSection = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
+
 
     print('YEAR COORDINATOR STREAM: $yearCoordinatorStream');
     print('BRANCH: $branch');
@@ -151,7 +160,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           case 'FACULTY ADVISOR AND YEAR COORDINATOR':
 
             if (selectedSpinnerOption1 == 'SECTION') {
-              detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/${faYear ?? 'year'}/${branch ?? 'branch'}/${faStream ?? 'stream'}/${selectedSpinnerOption2 ?? 'option2'}/LEAVE FORMS/$leaveFormType');
+              detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$faYear/$branch/$faStream/$selectedSpinnerOption2/LEAVE FORMS/$leaveFormType');
             } else if (selectedSpinnerOption1 == 'YEAR COORDINATOR') {
               detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/${branch ?? 'branch'}/YEAR COORDINATOR/${yearCoordinatorStream ?? 'stream'}/LEAVE FORMS/$leaveFormType');
             }
@@ -175,7 +184,10 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
   @override
   Widget build(BuildContext context) {
-    String appBarTitle = 'Leave Forms';
+    String appBarTitle='';
+    if(widget.privilege=='FACULTY ADVISOR' || widget.privilege=='HOSTEL WARDEN'){
+      String appBarTitle = 'Leave Forms';
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(appBarTitle),
@@ -188,11 +200,17 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
               child: DropdownButton<String>(
                 value: selectedSpinnerOption1,
                 onChanged: (String? newValue) {
+                  if(selectedSpinnerOption1==newValue){
+                    return;
+                  }
                   updateRef();
                   setState(() {
-                    selectedSpinnerOption1 = newValue!;
                     onSpinner1Changed(newValue);
+                    selectedSpinnerOption1 = newValue!;
+                      buildTab();
+
                   });
+
                 },
                 items: spinnerOptions1.map<DropdownMenuItem<String>>((String value) {
                   return DropdownMenuItem<String>(
@@ -212,11 +230,18 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
               child: DropdownButton<String>(
                 value: selectedSpinnerOption2,
                 onChanged: (String? newValue) {
-                  print('isSpinner2Visible');
-                  updateRef();
+
+                  if(selectedSpinnerOption2==newValue){
+                    return;
+                  }
+
+                  print('isSpinner2Visible: ${spinnerOptions2.toString()}');
                   setState(() {
+                    updateRef();
+                    buildTab();
                     selectedSpinnerOption2 = newValue!;
                   });
+
                 },
                 items: spinnerOptions2.map<DropdownMenuItem<String>>((String value) {
                   return DropdownMenuItem<String>(
@@ -244,22 +269,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           ),
         ],
       ),
-      body: FutureBuilder(
-        // Replace `_buildBody()` with a Future that resolves when the data is retrieved
-        future: getData(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            // If the Future is still running, return a loading indicator or an empty container
-            return CircularProgressIndicator(); // Replace this with your loading widget
-          } else if (snapshot.hasError) {
-            // If there's an error, handle it accordingly
-            return Text('Error: ${snapshot.error}');
-          } else {
-            // If the Future is completed, build the UI with the retrieved data
-            return _buildBody();
-          }
-        },
-      ),
+      body: _buildBody() ,
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -287,40 +297,9 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     );
   }
 
-  Future<void> onSpinner1Changed(String newValue)async{
-    spinnerOptions2.clear();
-    if(widget.privilege=='HOD'){
-      if(newValue=='AIML' || newValue=='CS' || newValue=='DS' || newValue=='IOT'){
-        String? hodYear = await sharedPreferences.getSecurePrefsValue('HOD YEAR');
-        yearList = hodYear!.split(',');
-
-        spinnerOptions2 = yearList;
-        selectedSpinnerOption2 = yearList.isNotEmpty ? yearList[0] : '';
-      }
-    }else if(widget.privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
-      if(newValue=='SECTION'){
-        spinnerOptions2 = [faSection ?? 'SECTION NOT FOUND'];
-        selectedSpinnerOption2 = spinnerOptions2[0];
-      }else if(newValue=='YEAR COORDINATOR'){
-        yearList = yearCoordinatorYear!.split(',');
-        yearList.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
-        spinnerOptions2.addAll(yearList);
-        selectedSpinnerOption2=spinnerOptions2[0];
-      }
-    }else if(widget.privilege=='YEAR COORDINATOR'){
-
-      yearList = yearCoordinatorYear!.split(',');
-      spinnerOptions2 = yearList;
-      selectedSpinnerOption2 = yearList.isNotEmpty ? yearList[0] : '';
-
-    }else{
-      utils.showToastMessage('You are not authorized to change', context);
-    }
-  }
-
   Future<void> getData() async {
     await data();
-    await initializeData();
+    await initializeSpinners();
   }
 
   void _onItemTapped(int index) {
@@ -333,52 +312,201 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   Widget _buildBody() {
     print('Build body');
     if (selectedIndex == 3) {
-      showReport();
-      return Placeholder(
-        color: Colors.grey, // Set the color to your preference
-        strokeWidth: 2.0,   // Set the stroke width to your preference
-        fallbackHeight: 100, // Set the height to your preference
-        fallbackWidth: 100,  // Set the width to your preference
+      return FutureBuilder<void>(
+        future: showReport(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return CircularProgressIndicator(); // Show a loading indicator while data is being fetched
+          } else if (snapshot.hasError) {
+            return Text('Error: ${snapshot.error}');
+          } else {
+            print('datalist: ${dataList.toString()}');
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  SizedBox(height: 10), // Add some spacing between the text field and the table
+                  Center(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: _buildTableRows(),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+        },
       );
+    } else {
+      leaveFormType = selectedIndex == 0 ? 'PENDING' : (selectedIndex == 1 ? 'ACCEPTED' : 'REJECTED');
+      updateRef();
+      return buildTab();
     }
-    leaveFormType = selectedIndex == 0 ? 'PENDING' : (selectedIndex == 1 ? 'ACCEPTED' : 'REJECTED');
-    updateRef();
-    return buildTab();
   }
 
   Future<void> showReport() async{
-    List<String> oneWeekDates=utils.getOneWeekDates();
-    List<String> formTypes=['APPLIED','PENDING','ACCEPTED','REJECTED'];
-    Map<String,String> sectionCountData={};
-    Map<String,Map<String,String>> dayCountData={};
+    oneWeekDates=utils.getOneWeekDates();
+    List<String> formTypes=['APPLIED','ACCEPTED','REJECTED'];
+    int count=0;
+    dataList.clear();
     switch(widget.privilege){
       case 'FACULTY ADVISOR':
 
-        for(int i=0; i<oneWeekDates.length; i++){
-          print(oneWeekDates[i]);
-          for(int j=0; j<formTypes.length; j++){
-            String path='/KLU/${oneWeekDates[i]}/$faYear/$branch/$faStream/$faSection/${formTypes[j]}';
-            int count=await realtimeDatabase.getLeaveCount(path);
-            print('${formTypes[j]}  ${count.toString()}');
-            sectionCountData.addAll({formTypes[j]:count.toString()});
-            print('sectionCountData: ${sectionCountData.toString()}');
-          }
-          dayCountData.addAll({oneWeekDates[i]:sectionCountData});
-          sectionCountData.clear();
-        }
-        print('Report count: ${dayCountData.toString()}');
+          String key = 'SECTION $faSection';
+          //print('key: ${key.toString()}');
+          for (int i = 0; i < oneWeekDates.length; i++) {
+            //print(oneWeekDates[i]);
+            Map<dynamic, dynamic> rowData = {'Date': oneWeekDates[i]};
+            // Iterate through form types to get leave counts for each type
+            for (int j = 0; j < formTypes.length; j++) {
+              String path = '/KLU/${oneWeekDates[i]}/$faYear/$branch/$faStream/$faSection/${formTypes[j]}';
+              //print('path: ${path.toString()}');
+              count = await realtimeDatabase.getLeaveCount(path); // Accumulate counts from each section
+              //print('count: ${count}');
+              rowData[formTypes[j]] = count; // Assign the total count for the form type to the row data
+            }
+            //print('rowData: ${rowData.toString()}');
 
+            if (dataList.containsKey(key)) {
+              // If the key already exists, add the row data to the existing list
+              dataList[key]!.add(rowData);
+            } else {
+              // If the key doesn't exist, create a new list with the row data
+              dataList[key] = [rowData];
+            }
+          }
+
+        print('datalist: ${dataList.toString()}');
         break;
+        
       case 'YEAR COORDINATOR':
 
+        for (String yearEntry in yearList) {
+          String key = '$yearCoordinatorStream $yearEntry';
+          //print('key: ${key.toString()}');
+          for (int i = 0; i < oneWeekDates.length; i++) {
+            print(oneWeekDates[i]);
+            Map<dynamic, dynamic> rowData = {'Date': oneWeekDates[i]};
+            // Iterate through form types to get leave counts for each type
+            for (int j = 0; j < formTypes.length; j++) {
+              int count = 0; // Reset the count for each form type
+              String path = '/KLU/${oneWeekDates[i]}/$yearEntry/$branch/$yearCoordinatorStream/';
+              List<String> sectionList = await realtimeDatabase.getKeyNamesInsideKeys(path);
+              for (String sectionEntry in sectionList) {
+                String sectionPath = '$path$sectionEntry/${formTypes[j]}';
+                count += await realtimeDatabase.getLeaveCount(sectionPath); // Accumulate counts from each section
+              }
+              rowData[formTypes[j]] = count; // Assign the total count for the form type to the row data
+            }
+            //print('rowData: ${rowData.toString()}');
+
+            if (dataList.containsKey(key)) {
+              // If the key already exists, add the row data to the existing list
+              dataList[key]!.add(rowData);
+            } else {
+              // If the key doesn't exist, create a new list with the row data
+              dataList[key] = [rowData];
+            }
+          }
+        }
+        //print('dataList: :${dataList.toString()}');
 
         break;
       case 'FACULTY ADVISOR AND YEAR COORDINATOR':
 
+        if(selectedSpinnerOption1=='SECTION'){
+          String key = 'SECTION $faSection';
+          //print('key: ${key.toString()}');
+          for (int i = 0; i < oneWeekDates.length; i++) {
+            //print(oneWeekDates[i]);
+            Map<dynamic, dynamic> rowData = {'Date': oneWeekDates[i]};
+            // Iterate through form types to get leave counts for each type
+            for (int j = 0; j < formTypes.length; j++) {
+              String path = '/KLU/${oneWeekDates[i]}/$faYear/$branch/$faStream/$faSection/${formTypes[j]}';
+              //print('path: ${path.toString()}');
+              count = await realtimeDatabase.getLeaveCount(path); // Accumulate counts from each section
+              //print('count: ${count}');
+              rowData[formTypes[j]] = count; // Assign the total count for the form type to the row data
+            }
+            //print('rowData: ${rowData.toString()}');
 
+            if (dataList.containsKey(key)) {
+              // If the key already exists, add the row data to the existing list
+              dataList[key]!.add(rowData);
+            } else {
+              // If the key doesn't exist, create a new list with the row data
+              dataList[key] = [rowData];
+            }
+          }
+        }else if(selectedSpinnerOption1=='YEAR COORDINATOR'){
+
+          for (String yearEntry in yearList) {
+            String key = '$yearCoordinatorStream $yearEntry';
+            //print('key: ${key.toString()}');
+            for (int i = 0; i < oneWeekDates.length; i++) {
+              print(oneWeekDates[i]);
+              Map<dynamic, dynamic> rowData = {'Date': oneWeekDates[i]};
+              // Iterate through form types to get leave counts for each type
+              for (int j = 0; j < formTypes.length; j++) {
+                int count = 0; // Reset the count for each form type
+                String path = '/KLU/${oneWeekDates[i]}/$yearEntry/$branch/$yearCoordinatorStream/';
+                List<String> sectionList = await realtimeDatabase.getKeyNamesInsideKeys(path);
+                for (String sectionEntry in sectionList) {
+                  String sectionPath = '$path$sectionEntry/${formTypes[j]}';
+                  count += await realtimeDatabase.getLeaveCount(sectionPath); // Accumulate counts from each section
+                }
+                rowData[formTypes[j]] = count; // Assign the total count for the form type to the row data
+              }
+              //print('rowData: ${rowData.toString()}');
+
+              if (dataList.containsKey(key)) {
+                // If the key already exists, add the row data to the existing list
+                dataList[key]!.add(rowData);
+              } else {
+                // If the key doesn't exist, create a new list with the row data
+                dataList[key] = [rowData];
+              }
+            }
+          }
+        }
+        print('datalist: ${dataList.toString()}');
         break;
       case 'HOD':
+        List<String> streamList=['CS','AIML','DS','IOT'];
+        for (String yearEntry in yearList) {
+          //print('key: ${key.toString()}');
+          for(String streams in streamList) {
+            String key = '$streams $yearEntry';
 
+            for (int i = 0; i < oneWeekDates.length; i++) {
+              print(oneWeekDates[i]);
+              Map<dynamic, dynamic> rowData = {'Date': oneWeekDates[i]};
+              // Iterate through form types to get leave counts for each type
+              for (int j = 0; j < formTypes.length; j++) {
+                int count = 0; // Reset the count for each form type
+                String path = '/KLU/${oneWeekDates[i]}/$yearEntry/$branch/$streams/';
+                List<String> sectionList = await realtimeDatabase
+                    .getKeyNamesInsideKeys(path);
+                for (String sectionEntry in sectionList) {
+                  String sectionPath = '$path$sectionEntry/${formTypes[j]}';
+                  count += await realtimeDatabase.getLeaveCount(
+                      sectionPath); // Accumulate counts from each section
+                }
+                rowData[formTypes[j]] =
+                    count; // Assign the total count for the form type to the row data
+              }
+              //print('rowData: ${rowData.toString()}');
+
+              if (dataList.containsKey(key)) {
+                // If the key already exists, add the row data to the existing list
+                dataList[key]!.add(rowData);
+              } else {
+                // If the key doesn't exist, create a new list with the row data
+                dataList[key] = [rowData];
+              }
+            }
+          }
+        }
 
         break;
       default:
@@ -387,6 +515,116 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
         return;
     }
   }
+
+
+  List<Widget> _buildTableRows() {
+    print('Build table rows started');
+    List<Widget> tables = [];
+    for (var entry in dataList.entries) {
+      print('dataEntries: ${entry.toString()}');
+      textAboveTable = entry.key;
+      List<Map<dynamic, dynamic>> tableData = entry.value;
+      List<TableRow> rows = [];
+
+      // Add the additional header row
+      List<Widget> headerCells = [];
+      for (String header in ['DATE', 'APPLIED', 'ACCEPTED', 'REJECTED']) {
+        headerCells.add(
+          TableCell(
+            child: Container(
+              padding: EdgeInsets.all(8.0),
+              child: Text(header),
+            ),
+          ),
+        );
+      }
+      rows.add(TableRow(children: headerCells));
+
+      // Use a Set to store unique dates
+      Set<String> uniqueDates = Set();
+
+      // Add data rows
+      for (int i = 0; i < tableData.length; i++) {
+        Map<dynamic, dynamic> rowData = tableData[i];
+        String date = rowData['Date'].toString();
+        if (!uniqueDates.contains(date)) {
+          List<Widget> cells = [];
+          rowData.forEach((key, value) {
+            cells.add(
+              TableCell(
+                child: Container(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(value.toString()),
+                ),
+              ),
+            );
+          });
+          rows.add(TableRow(children: cells));
+          uniqueDates.add(date); // Add the date to the set to avoid duplicates
+        }
+      }
+
+      tables.add(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                textAboveTable,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+            Table(
+              border: TableBorder.all(),
+              defaultColumnWidth: IntrinsicColumnWidth(),
+              children: rows,
+            ),
+          ],
+        ),
+      );
+    }
+    return tables;
+  }
+
+  Future<void> onSpinner1Changed(String? newValue) async {
+    spinnerOptions2.clear();
+    if (newValue != null && newValue.isNotEmpty) {
+      if (widget.privilege == 'HOD') {
+        if (newValue == 'AIML' || newValue == 'CS' || newValue == 'DS' || newValue == 'IOT') {
+          yearList = hodYear!.split(',');
+          print('hod year list: ${yearList}');
+          spinnerOptions2.addAll(yearList);
+
+        }
+      } else if (widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
+        if (newValue == 'SECTION') {
+          isButtonVisible=false;
+          spinnerOptions2.add(faSection ?? 'SECTION NOT FOUND');
+        } else if (newValue == 'YEAR COORDINATOR') {
+          isButtonVisible=true;
+          yearList = yearCoordinatorYear!.split(',');
+          yearList.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
+          spinnerOptions2.addAll(yearList);
+        }
+      } else if (widget.privilege == 'YEAR COORDINATOR') {
+        yearList = yearCoordinatorYear!.split(',');
+        spinnerOptions2.addAll(yearList);
+      } else {
+        utils.showToastMessage('You are not authorized to change', context);
+      }
+    } else {
+      // Handle case where newValue is null or empty
+      print('Invalid or empty newValue');
+    }
+
+    selectedSpinnerOption2 = spinnerOptions2.isNotEmpty ? spinnerOptions2[0] : '';
+    print('spinner2values: ${spinnerOptions2.toString()}');
+  }
+
 
   Widget buildTab() {
     return StreamBuilder<DocumentSnapshot>(
@@ -473,7 +711,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text('ID: ${value['LEAVE ID']}'),
-                                Text('Status: ${value['VERIFIED']}'),
+                                Text('Status: ${value['VERIFICATION']}'),
                               ],
                             ),
                           ],
@@ -606,6 +844,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
         utils.showToastMessage('You are not authorized to accept all', context);
       }
     } catch (e) {
+      print('Accepting allForms Error: $e');
       utils.showToastMessage('Error occurred while accepting. Contact developer.', context);
     }
     EasyLoading.dismiss();

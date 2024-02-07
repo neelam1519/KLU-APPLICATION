@@ -61,6 +61,7 @@ class Reader{
 
           if (indexes.length == 1) {
             var targetRowValuesMap = Map<String, String>();
+            print('targetRowValuesMap: ${targetRowValuesMap.toString}');
             var rowsList = excel.tables[table]!.rows.toList();
             var targetRowValues = rowsList.elementAt(indexes[0] + 1).map((data) => data!.value.toString()).toList();
             var row = rowsList.elementAt(indexes[0] + 1);

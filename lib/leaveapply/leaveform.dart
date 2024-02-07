@@ -170,12 +170,12 @@ class _LeaveFormState extends State<LeaveForm> {
       return;
     }
 
-    // String number='+91${parentMobileNumber.trim()}';
-    // print('toNumber: ${number}');
-    //
-    // twilioFlutter.sendSMS(
-    //     toNumber : number,
-    //     messageBody : 'This is from MyUniv leave applied');
+    String number='+91${parentMobileNumber.trim()}';
+    print('toNumber: ${number}');
+
+    twilioFlutter.sendSMS(
+        toNumber : number,
+        messageBody : 'This is from MyUniv leave applied');
 
     Map<String,dynamic> data={};
 
