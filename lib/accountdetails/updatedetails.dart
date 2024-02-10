@@ -1,0 +1,248 @@
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:klu_flutter/utils/Firebase.dart';
+import 'package:klu_flutter/utils/readers.dart';
+import 'package:klu_flutter/utils/storage.dart';
+import 'package:path_provider/path_provider.dart';
+
+import '../utils/utils.dart';
+
+class UpdateDetails extends StatefulWidget {
+  @override
+  _UpdateDetailsState createState() => _UpdateDetailsState();
+}
+
+class _UpdateDetailsState extends State<UpdateDetails> {
+  List<String> yearList = ['2', '3', '4'];
+  String? branch = 'CSE';
+
+  Utils utils=Utils();
+  Storage storage = Storage();
+  FirebaseService firebaseService=FirebaseService();
+  Reader reader= Reader();
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Update Details'),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: yearList.length,
+              itemBuilder: (context, index) {
+                final year = yearList[index];
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$year $branch STUDENTS LIST', // Set the year and branch name
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          _pickFile('$year $branch STUDENTS LIST'); // Pass year and branch information to _pickFile
+                        },
+                        child: Text('Upload Files'),
+                      ),
+                      SizedBox(height: 20), // Add spacing between sections
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '$year $branch FA DETAILS', // Add Faculty Advisor Details section
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.refresh), // Add the upload file icon
+                            onPressed: () {
+                              updateDetails('$year $branch');
+                            },
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          _pickFile('$year $branch FA DETAILS'); // Pass year and branch information to _pickFile
+                        },
+                        child: Text('Upload Files for Faculty Advisor'),
+                      ),
+                      SizedBox(height: 20), // Add spacing between sections
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 20), // Add spacing between sections
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'ADMINS DETAILS', // Additional text widget
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 10), // Add spacing between text and button
+              ElevatedButton(
+                onPressed: () {
+                  _pickFile('Admins Details'); // Pass year and branch information to _pickFile
+                },
+                child: Text('Upload Files for Admins'),
+              ),
+              SizedBox(height: 20), // Add spacing between sections
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> updateDetails(String fileName) async {
+    final tempDir = await getTemporaryDirectory();
+    print('tempDir path: ${tempDir.path}');
+
+    String directoryPath = '${tempDir.path}/file_picker';
+    await Directory(directoryPath).create(recursive: true);
+
+    String studentFileName = '$fileName STUDENT DETAILS.xlsx';
+    String faFileName = '$fileName FA DETAILS.xlsx';
+    String adminsFileName = 'ADMINS.xlsx';
+
+    String studentFilePath = '$directoryPath/$studentFileName';
+    String faFilePath = '$directoryPath/$faFileName';
+    String adminsFilePath = '$directoryPath/$adminsFileName';
+
+    print('Student file path: $studentFilePath');
+    print('FA file path: $faFilePath');
+    print('Admins file path: $adminsFilePath');
+
+    // Read files
+    File studentFile = File(studentFilePath);
+    File faFile = File(faFilePath);
+    File adminsFile = File(adminsFilePath);
+
+    try {
+      // Check if files exist
+      if (await studentFile.exists()) {
+        // Process student file
+        print('Student file exists.');
+      } else {
+        print('Student file does not exist.');
+        return;
+      }
+
+      if (await faFile.exists()) {
+        // Process FA file
+        print('FA file exists.');
+      } else {
+        print('FA file does not exist.');
+        return;
+      }
+
+      if (await adminsFile.exists()) {
+        // Process admins file
+        print('Admins file exists.');
+      } else {
+        print('Admins file does not exist.');
+        return;
+      }
+
+      Map<String, String> studentTotalDetails = {};
+      List<String> studentRegNo = await reader.getColumnValues(studentFilePath, 'REGISTRATION NUMBER');
+      print('STUDENT REG NO: ${studentRegNo.toString()}');
+
+      for (String regNo in studentRegNo) {
+        Map<String, String> studentDetails = await reader.readExcelFile(studentFilePath, {'REGISTRATION NUMBER': regNo.trim()});
+        print('StudentDetails: ${studentDetails.toString()} ');
+        if (studentDetails.isEmpty) {
+          print('No details found for student with registration number: $regNo');
+          continue;
+        }
+
+        Map<String, String> faDetails = await reader.readExcelFile(faFilePath, {'SECTION': studentDetails['SECTION']!});
+        print('faDetails: ${faDetails.toString()} ');
+        if (faDetails.isEmpty) {
+          print('No FA details found for student with registration number: $regNo');
+          continue;
+        }
+
+        Map<String, String> adminDetails = await reader.readExcelFile(adminsFilePath, {
+          'BRANCH': faDetails['BRANCH']!,
+          'STREAM': faDetails['STREAM']!,
+          'YEAR': faDetails['YEAR']!
+        });
+        print('adminDetails: ${adminDetails.toString()} ');
+        if (adminDetails.isEmpty) {
+          print('No admin details found for student with registration number: $regNo');
+          continue;
+        }
+
+        studentTotalDetails.addAll(studentDetails);
+
+        studentTotalDetails.addAll({
+          'PRIVILEGE': 'STUDENT',
+          'SLOT': faDetails['SLOT']!,
+          'YEAR': faDetails['YEAR']!,
+          'SECTION': faDetails['SECTION']!,
+          'BRANCH': faDetails['BRANCH']!,
+          'STREAM': faDetails['STREAM']!,
+          'FACULTY ADVISOR NAME': faDetails['NAME']!,
+          'FACULTY ADVISOR STAFF ID': faDetails['STAFF ID']!,
+          'YEAR COORDINATOR STAFF ID': adminDetails['STAFF ID']!,
+          'YEAR COORDINATOR NAME': adminDetails['NAME']!
+        });
+
+        for (MapEntry<String, String> entry in studentTotalDetails.entries) {
+          String key = entry.key;
+          String value = entry.value;
+
+          if(utils.isRomanNumeral(value)){
+            int roman=utils.romanToInteger(value);
+            studentTotalDetails[key] = roman.toString();
+          }
+        }
+        DocumentReference studentDetailsRef=FirebaseFirestore.instance.doc('/KLU/STUDENTDETAILS/${studentTotalDetails['YEAR']}/${studentTotalDetails['REGISTRATION NUMBER']}');
+        print('studentDocumentReference: ${studentDetailsRef.path}');
+
+        await firebaseService.uploadMapDetailsToDoc(studentDetailsRef,studentTotalDetails);
+      }
+
+    } catch (e) {
+      print('Error: $e');
+    }
+  }
+
+  Future<void> _pickFile(String fileName) async {
+    try {
+
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        type: FileType.custom,
+        allowedExtensions: ['xlsx']
+      );
+
+    } catch (e) {
+      print('Failed to save file: $e');
+    }
+  }
+
+}

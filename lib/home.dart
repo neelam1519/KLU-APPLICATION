@@ -17,9 +17,6 @@ import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
 
 class Home extends StatefulWidget {
-  final String loggedUser;
-
-  Home({required this.loggedUser});
 
   @override
   _HomeState createState() => _HomeState();
@@ -34,32 +31,30 @@ class _HomeState extends State<Home> {
   FirebaseFirestore firebaseFirestore=FirebaseFirestore.instance;
   Utils utils=Utils();
 
-  String? name,email,privilege,fcmToken;
+  String? name,email,privilege,fcmToken,year,regNo;
   Uint8List? imageBytes;
 
   @override
   void initState() {
     super.initState();
     utils.showDefaultLoading();
-    initializeData();
 
+    initializeData();
     loadProfileImageBytes().then((bytes) {
     setState(() {
       imageBytes = bytes;
-    });
-    });
-    getDetails();
+    });});
   }
 
   Future<void> initializeData()async{
     if(await utils.checkInternetConnectivity()){
+      getDetails();
       requestNotificationPermissions();
       storeFcmToken();
     }else{
       utils.showToastMessage('Check your internet connection', context);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +168,8 @@ class _HomeState extends State<Home> {
   Future<void> leaveFormClicked() async{
     if(await utils.checkInternetConnectivity()){
 
+      utils.showToastMessage(privilege!, context);
+
       if(privilege=='FACULTY ADVISOR' || privilege=='HOD' || privilege=='YEAR COORDINATOR' || privilege=='FACULTY ADVISOR AND YEAR COORDINATOR' || privilege=='HOSTEL WARDEN'){
         Navigator.push(context, MaterialPageRoute(builder: (context) => LecturerLeaveFormsView(privilege: privilege,)));
 
@@ -189,10 +186,28 @@ class _HomeState extends State<Home> {
 
   Future<void> getDetails() async {
 
-    print("getDetails");
-    name = await sharedPreferences.getSecurePrefsValue("NAME");
-    email = await sharedPreferences.getSecurePrefsValue("MAIL ID");
+    utils.showDefaultLoading();
     privilege=await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
+    regNo=await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
+    year=await utils.getYearFromRegNo(regNo!);
+
+    DocumentReference detailsRef=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
+
+    if(privilege=='STUDENT'){
+      detailsRef= FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
+    }
+
+    Map<String,dynamic> details=await firebaseService.getMapDetailsFromDoc(detailsRef);
+
+    for(MapEntry<String,dynamic> data in details.entries){
+      String key=data.key;
+      String value=data.value;
+
+      await sharedPreferences.storeValueInSecurePrefs(key, value);
+    }
+
+    name = await sharedPreferences.getSecurePrefsValue("NAME");
+    email = await sharedPreferences.getSecurePrefsValue("EMAIL ID");
     EasyLoading.dismiss();
 
   }
@@ -289,6 +304,17 @@ class _HomeState extends State<Home> {
     } catch (e) {
       print('Error in storeFcmToken: $e');
       // Handle any errors that occur during the execution
+    }
+  }
+
+  Future<void> retrieveData() async{
+    final FirebaseAuth auth = FirebaseAuth.instance;
+    final User? user = auth.currentUser;
+    if (user != null) {
+      final uid = user.uid;
+      final email = user.email;
+
+    } else {
     }
   }
 }

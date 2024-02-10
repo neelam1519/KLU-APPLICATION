@@ -398,7 +398,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
               }
               rowData[formTypes[j]] = count; // Assign the total count for the form type to the row data
             }
-            //print('rowData: ${rowData.toString()}');
+            print('rowData: ${rowData.toString()}');
 
             if (dataList.containsKey(key)) {
               // If the key already exists, add the row data to the existing list
@@ -511,7 +511,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
         break;
       default:
 
-
+        utils.showDefaultLoading();
         return;
     }
   }
@@ -587,6 +587,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
         ),
       );
     }
+    EasyLoading.dismiss();
     return tables;
   }
 

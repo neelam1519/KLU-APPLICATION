@@ -1,7 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:intl/intl.dart';
 import 'package:klu_flutter/model/model.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
@@ -48,35 +45,6 @@ class FirebaseService {
   }
 
 
-  Future<UserDetails> getUserDetails(DocumentReference documentReference) async {
-    try {
-      DocumentSnapshot documentSnapshot = await documentReference.get();
-      print("getUserDetails location: ${documentSnapshot.reference.path}");
-      if (documentSnapshot.exists) {
-        Map<String, dynamic> data = documentSnapshot.data() as Map<
-            String,
-            dynamic>;
-
-        return UserDetails(
-          data['REGISTRATION NUMBER'] ?? 'regNo not found',
-          data['BRANCH'] ?? 'branch not found',
-          data['NAME'] ?? 'name not found',
-          data['HOSTEL NAME'] ?? 'hostel not found',
-          data['HOSTEL ROOM NUMBER'] ?? 'hostel room not found',
-          data['MOBILE NUMBER'] ?? 'mobile number not found',
-          data['SECTION'] ?? 'section not found',
-          data['YEAR'] ?? 'year not found',
-          data['EMAIL'] ?? 'EMAIL not found',
-          data['STREAM'] ?? 'STREAM not found',
-        );
-      } else {
-        throw Exception('User details not found');
-      }
-    } catch (error) {
-      print('Error getting user details: $error');
-      throw Exception('Error getting user details');
-    }
-  }
 
   Future<List<String>> getDocuments(CollectionReference collectionReference) async {
     try {
