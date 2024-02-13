@@ -1,9 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:intl/intl.dart';
-import 'package:klu_flutter/leaveapply/studentformsview.dart';
-import 'package:klu_flutter/model/model.dart';
 import 'package:klu_flutter/utils/RealtimeDatabase.dart';
 import 'package:klu_flutter/utils/utils.dart';
 import 'package:twilio_flutter/twilio_flutter.dart';
@@ -17,7 +16,6 @@ class LeaveForm extends StatefulWidget {
 
 class _LeaveFormState extends State<LeaveForm> {
 
-  String COLLECTION_NAME="KLU";
   DateTime? selectedStartDate;
   // Controllers for text fields
   TextEditingController startDateController = TextEditingController();
@@ -30,6 +28,7 @@ class _LeaveFormState extends State<LeaveForm> {
   FirebaseService firebaseService=FirebaseService();
   RealtimeDatabase realtimeDatabase=RealtimeDatabase();
   SharedPreferences secureStorage = SharedPreferences();
+
   TwilioFlutter twilioFlutter=TwilioFlutter(
       accountSid : 'AC20193099ffdd58f19dddcd9889fe39dd', // replace *** with Account SID
       authToken : '9dad3924d614df3f2423c479481fe4dd',  // replace xxx with Auth Token
@@ -128,6 +127,8 @@ class _LeaveFormState extends State<LeaveForm> {
     String? faName=await secureStorage.getSecurePrefsValue('FACULTY ADVISOR NAME');
     String? stream=await secureStorage.getSecurePrefsValue("STREAM");
     String? section=await secureStorage.getSecurePrefsValue("SECTION");
+    String? staffID=await secureStorage.getSecurePrefsValue('STAFF ID');
+    String? privilege=await secureStorage.getSecurePrefsValue('PRIVILEGE');
 
     await realtimeDatabase.incrementLeaveCount('KLU/LEAVE COUNT');
 
@@ -173,9 +174,9 @@ class _LeaveFormState extends State<LeaveForm> {
     String number='+91${parentMobileNumber.trim()}';
     print('toNumber: ${number}');
 
-    twilioFlutter.sendSMS(
-        toNumber : number,
-        messageBody : 'This is from MyUniv leave applied');
+    // twilioFlutter.sendSMS(
+    //     toNumber : number,
+    //     messageBody : 'This is from MyUniv leave applied');
 
     Map<String,dynamic> data={};
 
@@ -183,10 +184,21 @@ class _LeaveFormState extends State<LeaveForm> {
       'REASON': reason,'START DATE': startDate,'RETURN DATE':returnDate,'FACULTY ADVISOR APPROVAL': false,'YEAR COORDINATOR APPROVAL':false,
         'HOSTEL WARDEN APPROVAL' :false,'FACULTY ADVISOR DECLINED' :false, 'YEAR COORDINATOR DECLINED' : false,'HOSTEL WARDEN DECLINED' : false,'VERIFICATION':'PENDING'});
 
-    DocumentReference studentRef=FirebaseFirestore.instance.doc('/$COLLECTION_NAME/STUDENT DETAILS/$year/$branch/$stream/$regNo');
-    await firebaseService.uploadDataToCollection(studentRef.collection('LEAVE FORMS'), leaveCount, data);
-    DocumentReference classPendingRef=FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$year/$branch/$stream/$section/LEAVE FORMS/PENDING');
-    await firebaseService.storeDocumentReference(classPendingRef,leaveCount,studentRef);
+    DocumentReference studentRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
+    await firebaseService.uploadMapDetailsToDoc(studentRef.collection('LEAVEFORMS').doc(leaveCount), data,regNo!);
+
+    print('studentRef: ${studentRef.path}');
+
+    data.clear();
+    data.addAll({leaveCount: studentRef});
+    User? user = FirebaseAuth.instance.currentUser;
+    String uid = user!.uid;
+
+    print('User ID: $uid');
+    print('REGISTRATION NUMBER: ${regNo}');
+
+    DocumentReference classPendingRef=FirebaseFirestore.instance.doc('/KLU/CLASSROOMDETAILS/$year/$branch/$stream/$section/LEAVEFORMS/PENDING');
+    await firebaseService.uploadMapDetailsToDoc(classPendingRef,data,regNo);
 
     Navigator.pop(context);
     utils.showToastMessage("The Leave Form is Sent to ${faName!.toUpperCase()} For approval", context);

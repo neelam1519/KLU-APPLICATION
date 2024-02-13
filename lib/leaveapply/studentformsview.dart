@@ -16,7 +16,7 @@ class StudentsLeaveFormsView extends StatefulWidget {
 class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
   SharedPreferences sharedPreferences = SharedPreferences();
   Utils utils = Utils();
-  late CollectionReference studentLeaveRef=FirebaseFirestore.instance.collection('KLU/ERROR DETAILS/STUDENTS');
+  late CollectionReference studentLeaveRef=FirebaseFirestore.instance.collection('KLU/STUDENTDETAILS/1');
 
   @override
   void initState() {
@@ -27,9 +27,10 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
 
   Future<void> fetchLeaveCardData() async {
     String? regNo = await sharedPreferences.getSecurePrefsValue("REGISTRATION NUMBER");
+    String? year=utils.getYearFromRegNo(regNo!);
 
     setState(() {
-      studentLeaveRef = FirebaseFirestore.instance.collection('/KLU/STUDENTDETAILS/$regNo/LEAVEFORMS/');
+      studentLeaveRef = FirebaseFirestore.instance.collection('/KLU/STUDENTDETAILS/$year/$regNo/LEAVEFORMS/');
       EasyLoading.dismiss();
     });
   }

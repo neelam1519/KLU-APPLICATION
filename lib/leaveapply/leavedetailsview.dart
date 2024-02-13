@@ -27,7 +27,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
   FirebaseService firebaseService = FirebaseService();
   SharedPreferences sharedPreferences = SharedPreferences();
   RealtimeDatabase realtimeDatabase=RealtimeDatabase();
-  String? privilege;
+  String? privilege,staffID;
   late DocumentReference lecturerReference;
   List<String> details=[];
   Map<String, dynamic> studentLeaveDetails = {};
@@ -40,6 +40,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
 
   Future<void> initializeData() async {
     privilege = await sharedPreferences.getSecurePrefsValue("PRIVILEGE");
+    staffID=await sharedPreferences.getSecurePrefsValue('STAFF ID');
     lecturerReference=FirebaseFirestore.instance.doc(widget.lecturerRef);
     if ((widget.leaveformtype != 'ACCEPTED' && widget.leaveformtype != 'REJECTED') && widget.leaveformtype == 'PENDING' && privilege != 'STUDENT') {
       shouldShowAcceptButton = true;
@@ -51,9 +52,9 @@ class _LeaveDataState extends State<LeaveDetailsView> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> orderOfDetails = ['LEAVE ID', 'START DATE', 'RETURN DATE', 'REGISTRATION NUMBER', 'NAME', 'YEAR', 'BRANCH', 'STREAM', 'SECTION',
-      'FACULTY ADVISOR STAFF ID', 'STUDENT MOBILE NUMBER', 'PARENTS MOBILE NUMBER', 'REASON', 'HOSTEL NAME', 'HOSTEL ROOM NUMBER', 'FACULTY ADVISOR MAIL ID',
-      'FACULTY ADVISOR APPROVAL', 'YEAR COORDINATOR APPROVAL', 'HOSTEL WARDEN APPROVAL', 'VERIFICATION STATUS'];
+    List<String> orderOfDetails = ['LEAVE ID', 'START DATE', 'RETURN DATE', 'REGISTRATION NUMBER', 'NAME', 'YEAR', 'BRANCH', 'STREAM',
+      'SECTION', 'FACULTY ADVISOR STAFF ID', 'STUDENT MOBILE NUMBER', 'PARENTS MOBILE NUMBER', 'REASON', 'HOSTEL NAME', 'HOSTEL ROOM NUMBER',
+      'FACULTY ADVISOR APPROVAL', 'YEAR COORDINATOR APPROVAL', 'HOSTEL WARDEN APPROVAL', 'VERIFICATION'];
 
     return Scaffold(
       appBar: AppBar(
@@ -149,9 +150,10 @@ class _LeaveDataState extends State<LeaveDetailsView> {
   Future<void> onAccept() async {
     print('onAccept: ');
     try {
+
       utils.showDefaultLoading();
       CollectionReference leaveRef=await utils.DocumentToCollection(lecturerReference);
-      DocumentReference redirectingRef=FirebaseFirestore.instance.doc('KLU/CONFIRMED DETAILS');
+      DocumentReference redirectingRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS');
       DocumentReference? value;
       String field='';
       String? faYear = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
@@ -201,7 +203,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       await firebaseService.storeDocumentReference(redirectingRef, widget.leaveid, value);
       Map<String,String> dataVerification={};
       dataVerification.addAll({'VERIFICATION': verified});
-      await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVE FORMS').doc(widget.leaveid), dataVerification);
+      await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVE FORMS').doc(widget.leaveid), dataVerification,staffID!);
 
       Navigator.pop(context);
 
@@ -243,7 +245,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
         }
       }else if(privilege=='HOSTEL WARDEN'){
 
-        field='HOSTEL WARDEN APPROVAL';
+        field='HOSTEL WARDEN DECLINED';
 
       }else{
         utils.showToastMessage('Error occured while rejecting', context);
@@ -259,6 +261,10 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       await firebaseService.storeDocumentReference(collectionReference.doc('REJECTED'), widget.leaveid, value!);
       await firebaseService.deleteField(collectionReference.doc('PENDING'), widget.leaveid);
       await firebaseService.updateBooleanField(value.collection('LEAVE FORMS').doc(widget.leaveid), field, true);
+
+      Map<String,String> dataVerification={};
+      dataVerification.addAll({'VERIFICATION': field});
+      await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVE FORMS').doc(widget.leaveid), dataVerification,staffID!);
 
       Navigator.pop(context);
       EasyLoading.dismiss();
@@ -291,21 +297,15 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       DocumentReference leaveDetailsRef = FirebaseFirestore.instance.collection('KLU').doc('ERROR DETAILS');
 
       String? year = await sharedPreferences.getSecurePrefsValue('YEAR');
-      String? branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
-      String? stream = await sharedPreferences.getSecurePrefsValue('STREAM');
       String? regNo = await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
 
       Map<String, dynamic> studentDetails = {};
       Map<String, dynamic> leaveDetails = {};
 
-      print('PRIVILAGE :$privilege');
-      print('lecturerRef: $lecturerReference');
-
       if (privilege == 'STUDENT') {
-        studentDetailsRef = FirebaseFirestore.instance.doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo');
+        studentDetailsRef = FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
         print('studentDetailsRef: ${studentDetailsRef.path}');
-      } else
-      if (privilege == 'FACULTY ADVISOR' || privilege == 'YEAR COORDINATOR' || privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR' || privilege == 'HOSTEL WARDEN' || privilege=='HOD') {
+      }else if (privilege == 'FACULTY ADVISOR' || privilege == 'YEAR COORDINATOR' || privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR' || privilege == 'HOSTEL WARDEN' || privilege=='HOD') {
         studentDetailsRef = (await firebaseService.getDocumentReferenceFieldValue(lecturerReference, widget.leaveid))!;
       } else {
         utils.showToastMessage('Error occurred. Contact developer. Error code: 1', context);
@@ -315,54 +315,14 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       print('studentDetailsRef: $studentDetailsRef');
 
       studentDetails = await firebaseService.getMapDetailsFromDoc(studentDetailsRef);
-      leaveDetailsRef = studentDetailsRef.collection('LEAVE FORMS').doc(widget.leaveid);
+      leaveDetailsRef = studentDetailsRef.collection('LEAVEFORMS').doc(widget.leaveid);
       print('leaveDetailsRef: ${leaveDetailsRef.toString()}');
       leaveDetails = await firebaseService.getMapDetailsFromDoc(leaveDetailsRef);
 
       studentLeaveDetails.addAll(studentDetails);
       studentLeaveDetails.addAll(leaveDetails);
 
-      for (MapEntry<String, dynamic> str in studentLeaveDetails.entries) {
-        String key = str.key;
-        dynamic value = str.value;
-        print('$key : $value');
-      }
-
-      dynamic faApproval = studentLeaveDetails['FACULTY ADVISOR APPROVAL'] ?? false;
-      dynamic faDecline = studentLeaveDetails['FACULTY ADVISOR DECLINED'] ?? false;
-      dynamic yearCoordinatorApproval = studentLeaveDetails['YEAR COORDINATOR APPROVAL'] ?? false;
-      dynamic yearCoordinatorDecline = studentLeaveDetails['YEAR COORDINATOR DECLINED'] ?? false;
-      dynamic hostelWardenDecline = studentLeaveDetails['HOSTEL WARDEN DECLINED'] ?? false;
-      dynamic hostelWardenApproval = studentLeaveDetails['HOSTEL WARDEN APPROVAL'] ?? false;
-
-      print('fadecline: ${faDecline.toString()}');
-      bool verified = faApproval && yearCoordinatorApproval &&
-          hostelWardenApproval;
-      bool declined = faDecline || yearCoordinatorDecline || hostelWardenDecline;
-
-      String verification;
-      if (verified) {
-        verification = "APPROVED";
-      } else if (declined) {
-        if (faDecline) {
-          verification = 'FACULTY ADVISOR DECLINED';
-        } else if (yearCoordinatorDecline) {
-          verification = 'YEAR COORDINATOR DECLINED';
-        } else if (hostelWardenDecline) {
-          verification = 'HOSTEL WARDEN DECLINED';
-        } else {
-          verification = 'UNKNOWN ERROR';
-        }
-      } else {
-        verification = 'PENDING';
-      }
-
-      // Adding the custom verification status
-      studentLeaveDetails['VERIFICATION STATUS'] = verification;
-      List<String> keys = studentLeaveDetails.keys.toList();
-
       EasyLoading.dismiss();
-      print('TotalLeaveData: $keys');
       return studentLeaveDetails;
 
     }catch(e){

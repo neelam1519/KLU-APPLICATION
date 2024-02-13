@@ -8,10 +8,14 @@ class FirebaseService {
   Utils utils=Utils();
   FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-  Future<void> uploadMapDetailsToDoc(DocumentReference documentReference, Map<String, String> data) async {
+  Future<void> uploadMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data, String ID) async {
     try {
       // Use SetOptions to merge data if the document exists, create if it doesn't
-      await documentReference.set(data, SetOptions(merge: true));
+      print('uploadMapDetailsToDoc: ${documentReference.path}');
+      await documentReference.set({
+        ...data, // Include the document data
+        'verificationID': ID, // Additional metadata
+      }, SetOptions(merge: true)); // Use merge option to merge with existing document
 
       print('Map values uploaded successfully!');
     } catch (error) {
@@ -24,6 +28,7 @@ class FirebaseService {
     try {
       // Get the document snapshot
       DocumentSnapshot snapshot = await documentReference.get();
+
 
       // Check if the document exists
       if (snapshot.exists) {
@@ -367,22 +372,19 @@ class FirebaseService {
     }
   }
 
-  Future<void> uploadDataToCollection(CollectionReference collectionReference, String documentName, Map<String, dynamic> data) async {
+  Future<void> uploadDataTo(DocumentReference documentReference, Map<String, dynamic> data) async {
     try {
-      // Reference to the specific document
-      DocumentReference documentReference = collectionReference.doc(documentName);
-
       // Check if the document already exists
       bool documentExists = (await documentReference.get()).exists;
 
       if (documentExists) {
         // If the document exists, update it
         await documentReference.set(data, SetOptions(merge: true));
-        print('Data updated successfully in ${collectionReference.path}/$documentName');
+        print('Data updated successfully in ${documentReference.path}');
       } else {
         // If the document doesn't exist, create it
         await documentReference.set(data);
-        print('Data uploaded successfully to ${collectionReference.path}/$documentName');
+        print('Data uploaded successfully to ${documentReference.path}');
       }
     } catch (error) {
       print('Error uploading data: $error');
@@ -412,7 +414,7 @@ class FirebaseService {
     }
   }
 
-  Future<dynamic> getSpecificFieldValue(DocumentReference documentReference, String field) async {
+  Future<String> getSpecificFieldValue(DocumentReference documentReference, String field) async {
     try {
       // Get the document snapshot
       DocumentSnapshot snapshot = await documentReference.get();
@@ -422,17 +424,21 @@ class FirebaseService {
         // Replace "your_field" with the actual field name
         dynamic fieldValue = snapshot.get(field);
 
-        // Return the field value
-        return fieldValue;
+        // Check if the field value is null
+        if (fieldValue == null) {
+          // Return an empty string if the field value is null
+          return '';
+        } else {
+          // Return the field value as a string
+          return fieldValue.toString();
+        }
       } else {
         print("Document does not exist");
-        return null; // or throw an exception, depending on your use case
+        return ''; // or throw an exception, depending on your use case
       }
     } catch (e) {
       print("Error getting document: $e");
-      return null; // or throw an exception, depending on your use case
+      return ''; // or throw an exception, depending on your use case
     }
   }
-
-
 }

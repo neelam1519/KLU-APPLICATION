@@ -24,11 +24,13 @@ class _UserAccountState extends State<UserAccount> {
   bool showAcademicDetails = true;
   bool showHostelDetails = true;
   bool showFacultyDetails = true;
-  bool showUpgradeDetails = true;
+  bool showUpgradeDetails = false;
 
   @override
   void initState() {
     super.initState();
+
+    updateVisibility();
     loadProfileImageBytes().then((bytes) {
       setState(() {
         imageBytes = bytes;
@@ -36,6 +38,16 @@ class _UserAccountState extends State<UserAccount> {
     });
     // Fetch user details when the widget is initialized
     fetchUserDetails();
+  }
+  Future<void> updateVisibility() async{
+    String? privilege=await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
+    print('privilege $privilege');
+    if(privilege =='HOD'){
+      print('HOD LOGIN');
+      setState(() {
+        showUpgradeDetails = true;
+      });
+    }
   }
 
   Future<Uint8List?> loadProfileImageBytes() async {

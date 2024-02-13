@@ -47,10 +47,11 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> initializeData()async{
+    privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE') ?? '';
     if(await utils.checkInternetConnectivity()){
       getDetails();
       requestNotificationPermissions();
-      storeFcmToken();
+      //storeFcmToken();
     }else{
       utils.showToastMessage('Check your internet connection', context);
     }
@@ -185,30 +186,45 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> getDetails() async {
-
     utils.showDefaultLoading();
-    privilege=await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
-    regNo=await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
-    year=await utils.getYearFromRegNo(regNo!);
+    try {
+      DocumentReference detailsRef = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
 
-    DocumentReference detailsRef=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
+      if (privilege == 'STUDENT') {
+        regNo = await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
+        year = await utils.getYearFromRegNo(regNo!);
 
-    if(privilege=='STUDENT'){
-      detailsRef= FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
+        detailsRef = FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
+      } else if(privilege == 'LECTURERS' || privilege == 'YEAR COORDINATOR' || privilege == 'LECTURER' || privilege=='HOD'){
+        String? staffID = await sharedPreferences.getSecurePrefsValue('STAFF ID');
+
+        detailsRef = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/$privilege/$staffID');
+      }else{
+        utils.showToastMessage('NO DATA FOUND', context);
+        EasyLoading.dismiss();
+        return;
+      }
+
+      Map<String, dynamic> details = await firebaseService.getMapDetailsFromDoc(detailsRef);
+
+      for (MapEntry<String, dynamic> data in details.entries) {
+        String key = data.key;
+        String value = data.value;
+
+        await sharedPreferences.storeValueInSecurePrefs(key, value);
+      }
+
+      print('privilege: ${await sharedPreferences.getSecurePrefsValue('PRIVILEGE')}');
+
+      name = await sharedPreferences.getSecurePrefsValue('NAME');
+      email = await sharedPreferences.getSecurePrefsValue('EMAIL ID');
+
+      EasyLoading.dismiss();
+    }catch(e){
+      utils.exceptions(e, 'getDetails');
+      utils.showToastMessage('Error occured while getting the data', context);
+      EasyLoading.dismiss();
     }
-
-    Map<String,dynamic> details=await firebaseService.getMapDetailsFromDoc(detailsRef);
-
-    for(MapEntry<String,dynamic> data in details.entries){
-      String key=data.key;
-      String value=data.value;
-
-      await sharedPreferences.storeValueInSecurePrefs(key, value);
-    }
-
-    name = await sharedPreferences.getSecurePrefsValue("NAME");
-    email = await sharedPreferences.getSecurePrefsValue("EMAIL ID");
-    EasyLoading.dismiss();
 
   }
 

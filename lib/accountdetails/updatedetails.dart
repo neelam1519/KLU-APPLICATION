@@ -5,9 +5,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/readers.dart';
+import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/storage.dart';
 import 'package:path_provider/path_provider.dart';
-
 import '../utils/utils.dart';
 
 class UpdateDetails extends StatefulWidget {
@@ -16,13 +16,35 @@ class UpdateDetails extends StatefulWidget {
 }
 
 class _UpdateDetailsState extends State<UpdateDetails> {
-  List<String> yearList = ['2', '3', '4'];
-  String? branch = 'CSE';
+  List<String> yearList = [];
+  String? branch = '',privilege='',staffID='';
 
   Utils utils=Utils();
   Storage storage = Storage();
   FirebaseService firebaseService=FirebaseService();
+  SharedPreferences sharedPreferences=SharedPreferences();
   Reader reader= Reader();
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    getData();
+
+    super.initState();
+  }
+
+  Future<void> getData() async{
+    print('getData started');
+   String? year=await sharedPreferences.getSecurePrefsValue('YEAR');
+   branch= await sharedPreferences.getSecurePrefsValue('BRANCH');
+   yearList=year!.split(',');
+   privilege=await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
+   staffID=await sharedPreferences.getSecurePrefsValue('STAFF ID');
+   print('getData :${staffID}');
+   setState(() {
+
+   });
+  }
 
 
   @override
@@ -166,67 +188,168 @@ class _UpdateDetailsState extends State<UpdateDetails> {
         return;
       }
 
-      Map<String, String> studentTotalDetails = {};
-      List<String> studentRegNo = await reader.getColumnValues(studentFilePath, 'REGISTRATION NUMBER');
-      print('STUDENT REG NO: ${studentRegNo.toString()}');
+      // Map<String, String> studentTotalDetails = {};
+      // List<String> studentRegNo = await reader.getColumnValues(studentFilePath, 'REGISTRATION NUMBER');
+      //
+      // for (String regNo in studentRegNo) {
+      //
+      //   Map<String, String> studentDetails = await reader.readExcelFile(studentFilePath, {'REGISTRATION NUMBER': regNo.trim()});
+      //   print('StudentDetails: ${studentDetails.toString()} ');
+      //   if (studentDetails.isEmpty) {
+      //     print('No details found for student with registration number: $regNo');
+      //     continue;
+      //   }
+      //
+      //   Map<String, String> faDetails = await reader.readExcelFile(faFilePath, {'SECTION': studentDetails['SECTION']!});
+      //   print('faDetails: ${faDetails.toString()} ');
+      //   if (faDetails.isEmpty) {
+      //     print('No FA details found for student with registration number: $regNo');
+      //     continue;
+      //   }
+      //
+      //   Map<String, String> adminDetails = await reader.readExcelFile(adminsFilePath, {
+      //     'BRANCH': faDetails['BRANCH']!,
+      //     'STREAM': faDetails['STREAM']!,
+      //     'YEAR': faDetails['YEAR']!
+      //   });
+      //   print('adminDetails: ${adminDetails.toString()} ');
+      //   if (adminDetails.isEmpty) {
+      //     print('No admin details found for student with registration number: $regNo');
+      //     continue;
+      //   }
+      //
+      //   studentTotalDetails.addAll(studentDetails);
+      //
+      //   studentTotalDetails.addAll({
+      //     'PRIVILEGE': 'STUDENT',
+      //     'SLOT': faDetails['SLOT']!,
+      //     'YEAR': faDetails['YEAR']!,
+      //     'SECTION': faDetails['SECTION']!,
+      //     'BRANCH': faDetails['BRANCH']!,
+      //     'STREAM': faDetails['STREAM']!,
+      //     'FACULTY ADVISOR NAME': faDetails['NAME']!,
+      //     'FACULTY ADVISOR STAFF ID': faDetails['STAFF ID']!,
+      //     'YEAR COORDINATOR STAFF ID': adminDetails['STAFF ID']!,
+      //     'YEAR COORDINATOR NAME': adminDetails['NAME']!
+      //   });
+      //
+      //   for (MapEntry<String, String> entry in studentTotalDetails.entries) {
+      //     String key = entry.key;
+      //     String value = entry.value;
+      //
+      //     if(utils.isRomanNumeral(value)){
+      //       int roman=utils.romanToInteger(value);
+      //       studentTotalDetails[key] = roman.toString();
+      //     }
+      //   }
+      //   DocumentReference studentDetailsRef=FirebaseFirestore.instance.doc('/KLU/STUDENTDETAILS/${studentTotalDetails['YEAR']}/${studentTotalDetails['REGISTRATION NUMBER']}');
+      //   print('studentDocumentReference: ${studentDetailsRef.path}');
+      //
+      //   await firebaseService.uploadMapDetailsToDoc(studentDetailsRef,studentTotalDetails);
+      // }
 
-      for (String regNo in studentRegNo) {
-        Map<String, String> studentDetails = await reader.readExcelFile(studentFilePath, {'REGISTRATION NUMBER': regNo.trim()});
-        print('StudentDetails: ${studentDetails.toString()} ');
-        if (studentDetails.isEmpty) {
-          print('No details found for student with registration number: $regNo');
-          continue;
-        }
+      Map<String,Map<String, String>> faTotalDetails={};
+      Map<String, String> faDetails = {};
+      List<String> faStaffID = await reader.getColumnValues(faFilePath, 'STAFF ID');
+      print('faStaffIdList: ${faStaffID.toString()}');
 
-        Map<String, String> faDetails = await reader.readExcelFile(faFilePath, {'SECTION': studentDetails['SECTION']!});
-        print('faDetails: ${faDetails.toString()} ');
+      for(String entry in faStaffID){
+
+        faDetails = await reader.readExcelFile(faFilePath, {'STAFF ID': entry.trim()});
+        //print('faStaffID: ${faDetails.toString()} ');
         if (faDetails.isEmpty) {
-          print('No FA details found for student with registration number: $regNo');
+          print('No details found for staff with staffID: $entry');
           continue;
         }
 
-        Map<String, String> adminDetails = await reader.readExcelFile(adminsFilePath, {
-          'BRANCH': faDetails['BRANCH']!,
-          'STREAM': faDetails['STREAM']!,
-          'YEAR': faDetails['YEAR']!
-        });
-        print('adminDetails: ${adminDetails.toString()} ');
+        faTotalDetails.addAll({entry:faDetails});
+      }
+
+      Map<String,Map<String, String>> adminsTotalDetails={};
+      Map<String, String> adminDetails = {};
+      List<String> adminStaffID = await reader.getColumnValues(adminsFilePath, 'STAFF ID');
+
+      for(String entry in adminStaffID){
+
+        adminDetails = await reader.readExcelFile(adminsFilePath, {'STAFF ID': entry.trim()});
+        //print('adminStaffID: ${adminDetails.toString()} ');
+
+        adminsTotalDetails.addAll({entry:adminDetails});
+
         if (adminDetails.isEmpty) {
-          print('No admin details found for student with registration number: $regNo');
+          print('No details found for staff with staffID: $entry');
           continue;
         }
+      }
 
-        studentTotalDetails.addAll(studentDetails);
+      Map<String, Map<String, String>> commonValues = {};
 
-        studentTotalDetails.addAll({
-          'PRIVILEGE': 'STUDENT',
-          'SLOT': faDetails['SLOT']!,
-          'YEAR': faDetails['YEAR']!,
-          'SECTION': faDetails['SECTION']!,
-          'BRANCH': faDetails['BRANCH']!,
-          'STREAM': faDetails['STREAM']!,
-          'FACULTY ADVISOR NAME': faDetails['NAME']!,
-          'FACULTY ADVISOR STAFF ID': faDetails['STAFF ID']!,
-          'YEAR COORDINATOR STAFF ID': adminDetails['STAFF ID']!,
-          'YEAR COORDINATOR NAME': adminDetails['NAME']!
-        });
-
-        for (MapEntry<String, String> entry in studentTotalDetails.entries) {
-          String key = entry.key;
-          String value = entry.value;
-
-          if(utils.isRomanNumeral(value)){
-            int roman=utils.romanToInteger(value);
-            studentTotalDetails[key] = roman.toString();
-          }
+      faTotalDetails.forEach((key, value) {
+        if (adminsTotalDetails.containsKey(key)) {
+          // If the key exists in both faDetails and adminDetails, add it to commonValues
+          commonValues[key] = value;
         }
-        DocumentReference studentDetailsRef=FirebaseFirestore.instance.doc('/KLU/STUDENTDETAILS/${studentTotalDetails['YEAR']}/${studentTotalDetails['REGISTRATION NUMBER']}');
-        print('studentDocumentReference: ${studentDetailsRef.path}');
+      });
 
-        await firebaseService.uploadMapDetailsToDoc(studentDetailsRef,studentTotalDetails);
+      commonValues.keys.forEach((key) {
+        faDetails.remove(key);
+        adminDetails.remove(key);
+      });
+
+
+      for (MapEntry<String, Map<String, String>> entry in commonValues.entries) {
+        String key = entry.key;
+        Map<String, String> value = entry.value;
+
+        value['PRIVILEGE'] = 'FACULTY ADVISOR AND YEAR COORDINATOR';
+      }
+
+      Map<String, Map<String, String>> combinedMap = {};
+
+      combinedMap.addAll(commonValues);
+      combinedMap.addAll(adminsTotalDetails);
+      combinedMap.addAll(faTotalDetails);
+
+
+      for (String key in combinedMap.keys) {
+        Map<String, String> value = combinedMap[key]!;
+        Map<String, String> updatedValue = {};
+
+        // Process the values in 'value' map
+        for (String rkey in value.keys) {
+          String rvalue = value[rkey]!;
+          List<String> parts = rvalue.split(',');
+
+          List<String> updatedParts = [];
+          for (String part in parts) {
+            if (utils.isRomanNumeral(part)) {
+              updatedParts.add(utils.romanToInteger(part).toString());
+            } else {
+              updatedParts.add(part);
+            }
+          }
+
+          updatedValue[rkey] = updatedParts.join(',');
+        }
+
+        // Check if staffID and privilege are not null before adding them
+        if (staffID != null && privilege != null) {
+          updatedValue[privilege!] = staffID!;
+        } else {
+          // Handle the case if staffID or privilege is null
+          print('Staff ID or Privilege is null');
+        }
+
+        print('key: $key  mapValues: ${updatedValue.toString()}');
+
+        // Update the document in Firestore with the updatedValue
+        DocumentReference studentDetailsRef = FirebaseFirestore.instance.doc('/KLU/STAFFDETAILS/LECTURERS/$key');
+        print('studentDocumentReference: ${studentDetailsRef.path}');
+        await firebaseService.uploadMapDetailsToDoc(studentDetailsRef, updatedValue,staffID!);
       }
 
     } catch (e) {
+      utils.showToastMessage('Error Occured: ${e}', context);
       print('Error: $e');
     }
   }

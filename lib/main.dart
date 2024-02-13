@@ -187,17 +187,19 @@ class MyHomePage extends StatelessWidget {
 
           String? lecturerOrStudent=await utils.lecturerORStudent(regNo);
 
-          //lecturerOrStudent=='STAFF';
+          DocumentReference detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS');
 
-          if(lecturerOrStudent =='STUDENT'){
-            DocumentReference studentRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
+          //lecturerOrStudent='STAFF';
 
-            studentRef.get().then((DocumentSnapshot snapshot) async {
+          if(lecturerOrStudent == 'STUDENT'){
+            detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
+
+            detailsRef.get().then((DocumentSnapshot snapshot) async {
               if (snapshot.exists) {
                 print('Document exists!');
 
                 data.addAll({'UID': userId, 'FCMTOKEN': fcmToken!});
-                await firebaseService.uploadMapDetailsToDoc(studentRef, data);
+                await firebaseService.uploadMapDetailsToDoc(detailsRef, data,regNo);
 
                 sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', 'STUDENT');
                 sharedPreferences.storeValueInSecurePrefs('REGISTRATION NUMBER', regNo);
@@ -205,10 +207,11 @@ class MyHomePage extends StatelessWidget {
 
                 print('Data: ${data.toString()}');
 
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => Home()),);
-
                 utils.showToastMessage('SUCCESSFULLY LOGGED IN $regNo', context);
+
+                EasyLoading.dismiss();
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => Home()));
                 // Do something if the document exists
               } else {
                 utils.showToastMessage('$regNo DETAILS NOT FOUND CONTACT FACULTY ADVISOR', context);
@@ -229,11 +232,61 @@ class MyHomePage extends StatelessWidget {
               // Handle any errors that occur while checking document existence
             });
 
-          }else if(lecturerOrStudent=='STAFF'){
+          }else if(lecturerOrStudent=='STAFF') {
+            List<String> positions = ['LECTURERS', 'WARDEN'];
+
+            try {
+              bool emailFound = false;
+
+              for (String position in positions) {
+                CollectionReference collectionReference = FirebaseFirestore.instance.collection('KLU/STAFFDETAILS/$position');
+                List<String> documents = await firebaseService.getDocuments(collectionReference);
+
+                for (String document in documents) {
+                  detailsRef = collectionReference.doc(document);
+                  String value = await firebaseService.getSpecificFieldValue(detailsRef, 'EMAIL ID');
+
+                  if (value == email) {
+                    emailFound = true;
+                    print('STAFF ID: $document');
+                    sharedPreferences.storeValueInSecurePrefs('STAFF ID', document);
+                    sharedPreferences.storeValueInSecurePrefs('EMAIL ID', email);
+                    sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', position);
+
+                    detailsRef = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/$position/$document');
+                    data.addAll({'UID': userId, 'FCMTOKEN': fcmToken!});
+                    await firebaseService.uploadMapDetailsToDoc(detailsRef, data,document);
+
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => Home()));
+
+                    break; // Stop the loop
+                  }
+                }
+
+                if (emailFound) {
+                  break; // Stop the outer loop
+                }
+              }
+
+              if (!emailFound) {
+                EasyLoading.dismiss();
+                GoogleSignIn().disconnect();
+                FirebaseAuth.instance.signOut();
+                utils.showToastMessage('YOUR DETAILS NOT FOUND', context);
+                return;
+              }
+            } catch (e) {
+              // Handle exceptions, log them, or show an error message to the user
+              print('Error occurred: $e');
+              EasyLoading.dismiss();
+              GoogleSignIn().disconnect();
+              FirebaseAuth.instance.signOut();
+              utils.showToastMessage('Details not found', context);
+              return;
+            }
 
           }
-
-
         }else{
           EasyLoading.dismiss();
           GoogleSignIn().disconnect();
@@ -250,5 +303,4 @@ class MyHomePage extends StatelessWidget {
       return;
     }
   }
-
 }

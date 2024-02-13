@@ -59,7 +59,6 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   }
 
   Future<void> initializeSpinners() async {
-
     if (widget.privilege == 'HOD') {
       isButtonVisible = true;
       isSpinner1Visible = true;
@@ -105,7 +104,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   Future<void> data() async{
     print('Retrieving the data');
 
-    hodYear = await sharedPreferences.getSecurePrefsValue('HOD YEAR');
+    hodYear = await sharedPreferences.getSecurePrefsValue('YEAR');
     yearCoordinatorStream =await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
     branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
     yearCoordinatorYear = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
@@ -136,14 +135,14 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
         switch(widget.privilege){
           case 'HOD':
 
-            detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$branch/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$leaveFormType');
+            detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$branch/YEARCOORDINATOR/$selectedSpinnerOption1/LEAVEFORMS/$leaveFormType');
             break;
 
           case 'FACULTY ADVISOR':
 
             print('entered faculty advisor :${detailsRetrievingRef!.path}');
             print('$faYear  $branch  $faStream  $faSection  $leaveFormType');
-            detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$faYear/$branch/$faStream/$faSection/LEAVE FORMS/$leaveFormType');
+            detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASSROOMDETAILS/$faYear/$branch/$faStream/$faSection/LEAVEFORMS/$leaveFormType');
             print('detailRetrievingRef test: ${detailsRetrievingRef!.path}');
             break;
 
@@ -186,7 +185,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   Widget build(BuildContext context) {
     String appBarTitle='';
     if(widget.privilege=='FACULTY ADVISOR' || widget.privilege=='HOSTEL WARDEN'){
-      String appBarTitle = 'Leave Forms';
+      appBarTitle = 'Leave Forms';
     }
     return Scaffold(
       appBar: AppBar(
@@ -516,7 +515,6 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     }
   }
 
-
   List<Widget> _buildTableRows() {
     print('Build table rows started');
     List<Widget> tables = [];
@@ -815,11 +813,16 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           String key = entry.key;
           DocumentReference value = entry.value;
 
-          // Update YEAR COORDINATOR APPROVAL to true
-          await firebaseService.updateBooleanField(value.collection('LEAVE FORMS').doc(key), 'YEAR COORDINATOR APPROVAL', true);
+          Map<String,dynamic> data={};
+          data.addAll({'YEAR COORDINATOR APPROVAL':true});
 
+          // Update YEAR COORDINATOR APPROVAL to true
+          await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVEFORMS').doc(key),data,staffID! );
+
+          data.clear();
+          data.addAll({key:value});
           // Move the form to ACCEPTED collection
-          await firebaseService.storeDocumentReference(collectionReference.doc('ACCEPTED'), key, value);
+          await firebaseService.uploadMapDetailsToDoc(collectionReference.doc('ACCEPTED'), data,staffID!);
 
           // Get required fields
           List<String> requiredFieldNames = [
@@ -836,7 +839,8 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
           // Move the form to HOSTEL PENDING collection
           DocumentReference hostelRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/${hostelFloor.substring(0, 1)}/PENDING');
-          await firebaseService.storeDocumentReference(hostelRef, key, value);
+
+          await firebaseService.uploadMapDetailsToDoc(hostelRef, data,staffID!);
 
           // Delete the form from the original collection
           await firebaseService.deleteField(detailsRetrievingRef!, key);
