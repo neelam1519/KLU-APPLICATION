@@ -159,9 +159,9 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       String? faYear = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
       String? faStream = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
       String? faBranch = await sharedPreferences.getSecurePrefsValue('BRANCH');
-      String? hostelName=studentLeaveDetails['HOSTEL NAME'];
-      String? hostelFloor=studentLeaveDetails['HOSTEL FLOOR NUMBER'];
-      String? hostelType=studentLeaveDetails['HOSTEL TYPE'];
+      String? hostelName='BHARATHI MENS HOSTEL';
+      String? hostelFloor='2';
+      String? hostelType='NORMAL';
 
       String verified='PENDING';
 
@@ -181,7 +181,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
           print('onAccept ${redirectingRef.toString()}');
           field='FACULTY ADVISOR APPROVAL';
         }else if(widget.type=='YEAR COORDINATOR'){
-          redirectingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/${hostelFloor!.substring(0,1)}/PENDING');
+          redirectingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/$hostelFloor/PENDING');
           print('onAccept ${redirectingRef.toString()}');
           field='YEAR COORDINATOR APPROVAL';
         }

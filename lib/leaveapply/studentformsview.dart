@@ -42,11 +42,11 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
         title: Text('YOUR LEAVE APPLICATIONS'),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: studentLeaveRef.snapshots(),
+        stream: studentLeaveRef.orderBy('START DATE', descending: true).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             EasyLoading.dismiss();
-            return Center();
+            return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             EasyLoading.dismiss();
             return Center(child: Text('Error: ${snapshot.error}'));
@@ -80,6 +80,7 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
+
 
   Widget buildLeaveCard(DocumentSnapshot leaveForm) {
     final cardData = leaveForm.data() as Map<String, dynamic>;
@@ -127,4 +128,5 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
       ),
     );
   }
+
 }

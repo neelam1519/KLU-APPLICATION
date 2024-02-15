@@ -32,7 +32,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
   late String textAboveTable='';
   late DocumentReference? detailsRetrievingRef=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
-  late String? faSection, branch='', year, stream, staffID,hodYear;
+  late String? faSection, branch='', year, stream, staffID='',hodYear;
   late String? yearCoordinatorStream='', faYear='', faStream='',yearCoordinatorYear='',hostelName='', hostelFloor='',hostelType='';
   DocumentReference studentLeaveForms = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
 
@@ -104,6 +104,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   Future<void> data() async{
     print('Retrieving the data');
 
+    staffID=await sharedPreferences.getSecurePrefsValue('STAFF ID');
     hodYear = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
     yearCoordinatorStream =await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
     branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
@@ -803,9 +804,11 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           actions: [
             TextButton(
               onPressed: () async {
+                utils.showDefaultLoading();
                 // Handle the "OK" button press
                 await acceptAllForms();
                 Navigator.of(context).pop(); // Close the dialog
+                EasyLoading.dismiss();
                 // Add your logic for the "OK" action here
               },
               child: Text('OK'),
@@ -828,11 +831,14 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     try {
       if (widget.privilege == 'YEAR COORDINATOR' || widget.privilege == 'HOD' || widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
         utils.showDefaultLoading();
-        // Assuming detailsRetrievingRef is a DocumentReference
+
         CollectionReference collectionReference = await utils.DocumentToCollection(detailsRetrievingRef!);
+        print('Collection Ref Accept all: ${detailsRetrievingRef!.path}');
 
         // Get the pending forms
         Map<String, dynamic> formRef = await firebaseService.getMapDetailsFromDoc(collectionReference.doc('PENDING'));
+
+        print('FormRef: ${formRef.toString()}');
 
         // Loop through each form
         for (MapEntry<String, dynamic> entry in formRef.entries) {
@@ -850,21 +856,25 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           // Move the form to ACCEPTED collection
           await firebaseService.uploadMapDetailsToDoc(collectionReference.doc('ACCEPTED'), data,staffID!);
 
-          // Get required fields
-          List<String> requiredFieldNames = [
-            'HOSTEL NAME',
-            'HOSTEL ROOM NUMBER',
-            'HOSTEL TYPE'
-          ];
-          Map<String, dynamic>? userDetails = await firebaseService.getValuesFromDocRef(value.collection('LEAVEFORMS').doc(key), requiredFieldNames);
+          // // Get required fields
+          // List<String> requiredFieldNames = [
+          //   'HOSTEL NAME',
+          //   'HOSTEL ROOM NUMBER',
+          //   'HOSTEL TYPE'
+          // ];
+          // Map<String, dynamic>? userDetails = await firebaseService.getValuesFromDocRef(value.collection('LEAVEFORMS').doc(key), requiredFieldNames);
+          //
+          // // Extract required fields
+          // String hostelName = userDetails!['HOSTEL NAME'];
+          // String hostelType = userDetails['HOSTEL TYPE'];
+          // String hostelFloor = userDetails['HOSTEL ROOM NUMBER'];
 
-          // Extract required fields
-          String hostelName = userDetails!['HOSTEL NAME'];
-          String hostelType = userDetails['HOSTEL TYPE'];
-          String hostelFloor = userDetails['HOSTEL ROOM NUMBER'];
+          hostelName='BHARATHI MENS HOSTEL';
+          hostelType='NORMAL';
+          hostelFloor='2';
 
           // Move the form to HOSTEL PENDING collection
-          DocumentReference hostelRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/${hostelFloor.substring(0, 1)}/PENDING');
+          DocumentReference hostelRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/$hostelFloor/PENDING');
 
           await firebaseService.uploadMapDetailsToDoc(hostelRef, data,staffID!);
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
+import 'package:klu_flutter/utils/utils.dart';
 
 class PersonalDetails extends StatefulWidget {
   @override
@@ -8,7 +9,9 @@ class PersonalDetails extends StatefulWidget {
 
 class _PersonalDetailsState extends State<PersonalDetails> {
   SharedPreferences sharedPreferences = SharedPreferences();
+  Utils utils=Utils();
   String? privilege;
+  List<String> data = [];
 
   @override
   void initState() {
@@ -18,217 +21,69 @@ class _PersonalDetailsState extends State<PersonalDetails> {
 
   Future<void> initializeData() async {
     privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
-    setState(() {}); // Trigger a rebuild after getting privilege data
+    if (privilege == 'STUDENT') {
+      data = ['NAME', 'REGISTRATION NUMBER', 'YEAR', 'BRANCH', 'STREAM'];
+    } else if (privilege == 'LECTURERS' || privilege == 'YEAR COORDINATOR' || privilege == 'HOD' || privilege == 'FACULTY ADVISOR' || privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
+      data = ['NAME', 'STAFF ID', 'BRANCH','PRIVILEGE'];
+    }else{
+      utils.showToastMessage('Unable to get teh details', context);
+    }
+    setState(() {
+
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget detailsWidget;
-    if (privilege == 'STUDENT') {
-      detailsWidget = StudentDetailsWidget();
-    } else if (privilege == 'FACULTY ADVISOR') {
-      detailsWidget = FacultyAdvisorDetailsWidget();
-    } else if (privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
-      detailsWidget = FacultyAdvisorAndCoordinatorDetailsWidget();
-    } else if (privilege == 'HOD') {
-      detailsWidget = HodDetailsWidget();
-    } else if (privilege == 'YEAR COORDINATOR') {
-      detailsWidget = YearCoordinatorDetailsWidget();
-    } else {
-      detailsWidget = Center(child: Text('Invalid privilege'));
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Personal Details'),
       ),
-      body: detailsWidget,
-    );
-  }
-}
-
-class StudentDetailsWidget extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(13),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
+      body: Center(
+        child: privilege != null
+            ? ListView.builder(
+          itemCount: data.length,
+          itemBuilder: (context, index) {
+            return ListTile(
+              title: Text(
+                '${data[index]} : ' ,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18), // Increase font size to 18
+              ),
+              subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Name: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                  SizedBox(height: 5),
-                  Text(
-                    'Neelam Madhusudhan Reddy',
-                    style: TextStyle(
-                      fontWeight: FontWeight.normal,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 15),
-                  Text(
-                    'Registration Number:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    '99210041602',
-                    style: TextStyle(
-                      fontWeight: FontWeight.normal,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 15),
-                  Text(
-                    'Email:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    '99210041602@klu.ac.in',
-                    style: TextStyle(
-                      fontWeight: FontWeight.normal,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 15),
-                  Text(
-                    'Branch:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    'CSE',
-                    style: TextStyle(
-                      fontWeight: FontWeight.normal,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 15),
-                  Text(
-                    'YEAR:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    '3',
-                    style: TextStyle(
-                      fontWeight: FontWeight.normal,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 15),
-                  Text(
-                    'SPECIALIZATION:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    'CYBER SECURITY',
-                    style: TextStyle(
-                      fontWeight: FontWeight.normal,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 15),
-                  Text(
-                    'Gender:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  DropdownButton<String>(
-                    value: 'Male',
-                    onChanged: (String? newValue) {
-                      // Handle dropdown value change
+                  SizedBox(height: 4), // Add spacing between the title and subtitle
+                  FutureBuilder<String?>(
+                    future: getPersonalDetail(data[index]), // Fetch the personal detail from SharedPreferences
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return CircularProgressIndicator(); // Show a loading indicator while fetching data
+                      } else if (snapshot.hasData) {
+                        return Text(
+                          snapshot.data!,
+                          style: TextStyle(fontSize: 16), // Increase font size to 16
+                        );
+                      } else {
+                        return Text(
+                          'N/A', // Display 'N/A' if data is not available
+                          style: TextStyle(fontSize: 16), // Increase font size to 16
+                        );
+                      }
                     },
-                    items: <String>['Male', 'Female','Other'].map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
-        SizedBox(height: 20), // Add some space between the details and the button
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center, // Align the button to the center horizontally
-          children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  // Handle button press
-                },
-                style: ButtonStyle(
-                  fixedSize: MaterialStateProperty.all(null), // Allow the button to adjust its width based on the content
-                ),
-                child: Text('Update'),
-              ),
-            ),
-          ],
-        ),
-      ],
+            );
+          },
+        )
+            : CircularProgressIndicator(), // Show a loading indicator until privilege data is fetched
+      ),
     );
   }
-}
 
-class FacultyAdvisorDetailsWidget extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('Faculty Advisor Details'));
-  }
-}
-
-class FacultyAdvisorAndCoordinatorDetailsWidget extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('Faculty Advisor and Year Coordinator Details'));
-  }
-}
-
-class HodDetailsWidget extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('HOD Details'));
-  }
-}
-
-class YearCoordinatorDetailsWidget extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('Year Coordinator Details'));
+  // Method to get personal detail from SharedPreferences
+  Future<String?> getPersonalDetail(String key) async {
+    String? detail = await sharedPreferences.getSecurePrefsValue(key);
+    return detail;
   }
 }

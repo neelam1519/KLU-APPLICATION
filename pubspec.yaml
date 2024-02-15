@@ -88,11 +88,12 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/profile_placeholder.jpg
     - assets/images/KLU_LOGO.png
     - assets/images/leaveicon.png
+    - assets/images/signinimage.png
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

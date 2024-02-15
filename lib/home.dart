@@ -335,15 +335,4 @@ class _HomeState extends State<Home> {
       // Handle any errors that occur during the execution
     }
   }
-
-  Future<void> retrieveData() async{
-    final FirebaseAuth auth = FirebaseAuth.instance;
-    final User? user = auth.currentUser;
-    if (user != null) {
-      final uid = user.uid;
-      final email = user.email;
-
-    } else {
-    }
-  }
 }

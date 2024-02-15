@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:klu_flutter/accountdetails/academicdetails.dart';
+import 'package:klu_flutter/accountdetails/facultydetails.dart';
+import 'package:klu_flutter/accountdetails/hosteldetails.dart';
 import 'package:klu_flutter/accountdetails/personaldetails.dart';
 import 'package:klu_flutter/accountdetails/updatedetails.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
@@ -19,11 +20,13 @@ class _UserAccountState extends State<UserAccount> {
   SharedPreferences sharedPreferences = SharedPreferences();
   FirebaseService firebaseService = FirebaseService();
   Uint8List? imageBytes;
+  String? name, regNo, email, privilege;
   Map<String, dynamic> userDetails = {};
+
   bool showPersonalDetails = true;
   bool showAcademicDetails = true;
-  bool showHostelDetails = true;
-  bool showFacultyDetails = true;
+  bool showHostelDetails = false;
+  bool showFacultyDetails = false;
   bool showUpgradeDetails = false;
 
   @override
@@ -33,19 +36,27 @@ class _UserAccountState extends State<UserAccount> {
     updateVisibility();
     loadProfileImageBytes().then((bytes) {
       setState(() {
+        getUserDetails();
         imageBytes = bytes;
       });
     });
-    // Fetch user details when the widget is initialized
-    fetchUserDetails();
   }
-  Future<void> updateVisibility() async{
-    String? privilege=await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
+
+  Future<void> updateVisibility() async {
+    String? privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
     print('privilege $privilege');
-    if(privilege =='HOD'){
+    if (privilege == 'HOD') {
       print('HOD LOGIN');
       setState(() {
         showUpgradeDetails = true;
+      });
+    }
+
+    if (privilege == 'STUDENT') {
+      print('STUDENT LOGIN');
+      setState(() {
+        showHostelDetails = true;
+        showFacultyDetails = true;
       });
     }
   }
@@ -60,18 +71,6 @@ class _UserAccountState extends State<UserAccount> {
     return null;
   }
 
-  Future<void> fetchUserDetails() async {
-    try {
-      Map<String, dynamic> fetchedUserDetails = await getUserDetails();
-      setState(() {
-        userDetails = fetchedUserDetails;
-      });
-    } catch (e) {
-      print("Error fetching user details: $e");
-      // Handle the error accordingly
-    }
-  }
-
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -80,96 +79,124 @@ class _UserAccountState extends State<UserAccount> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Display the image slightly above the app bar
           Container(
             margin: EdgeInsets.only(top: kToolbarHeight - 40),
             alignment: Alignment.center,
-            child: imageBytes != null
-                ? ClipOval(
+            child: ClipOval(
               child: Container(
-                width: 150, // Adjust width and height to set the size of the circular image
+                width: 150,
                 height: 150,
-                color: Colors.grey[200], // Placeholder color if imageBytes is null
-                child: Image.memory(
+                color: Colors.grey[200],
+                child: imageBytes != null
+                    ? Image.memory(
                   imageBytes!,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                )
+                    : Image.asset(
+                  'assets/images/profile_placeholder.jpg',
                   width: double.infinity,
                   height: double.infinity,
                   fit: BoxFit.cover,
                 ),
               ),
-            ) : Container(), // Or you can display a placeholder if imageBytes is null
+            ),
           ),
-          // Add other widgets below the image view as needed
-          SizedBox(height: 20), // Add spacing between the image and text views
-          Text(
-            'First Name: John',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          SizedBox(height: 20),
+          FutureBuilder<void>(
+            future: getUserDetails(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return CircularProgressIndicator();
+              } else {
+                return Column(
+                  children: [
+                    Text(
+                      '$name',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '$regNo',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                );
+              }
+            },
           ),
-          Text(
-            'Last Name: Doe',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          Text(
-            'Email: john.doe@example.com',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 20), // Add spacing between the text views and the line
-          Divider(height: 1, color: Colors.black), // Add a line below the column
-          SizedBox(height: 20), // Add spacing between the line and the buttons
+          SizedBox(height: 20),
+          Divider(height: 1, color: Colors.black),
+          SizedBox(height: 20),
           Column(
             children: [
               Visibility(
                 visible: showAcademicDetails,
-                  child: ListTile(
-                    title: Text('Personal details'),
-                    trailing: Icon(Icons.arrow_forward_ios),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => PersonalDetails()),
-                      );
-                    },
-
-                  )),
+                child: ListTile(
+                  title: Text('Personal details'),
+                  trailing: Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => PersonalDetails()),
+                    );
+                  },
+                ),
+              ),
               Visibility(
-                  visible: showFacultyDetails,
-                  child: ListTile(
-                    title: Text('Faculty details'),
-                    trailing: Icon(Icons.arrow_forward_ios),
-                    onTap: () {},
-
-                  )),
+                visible: showFacultyDetails,
+                child: ListTile(
+                  title: Text('Faculty details'),
+                  trailing: Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => FacultyDetails()),
+                    );
+                  },
+                ),
+              ),
               Visibility(
-                  visible: showPersonalDetails,
-                  child: ListTile(
-                    title: Text('Academic details'),
-                    trailing: Icon(Icons.arrow_forward_ios),
-                    onTap: () {},
-
-                  )),
+                visible: showPersonalDetails,
+                child: ListTile(
+                  title: Text('Academic details'),
+                  trailing: Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AcademicDetails()),
+                    );
+                  },
+                ),
+              ),
               Visibility(
-                  visible: showHostelDetails,
-                  child: ListTile(
-                    title: Text('Hostel details'),
-                    trailing: Icon(Icons.arrow_forward_ios),
-                    onTap: () {},
-
-                  )),
+                visible: showHostelDetails,
+                child: ListTile(
+                  title: Text('Hostel details'),
+                  trailing: Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => HostelDetails()),
+                    );
+                  },
+                ),
+              ),
               Visibility(
-                  visible: showUpgradeDetails,
-                  child: ListTile(
-                    title: Text('Update details'),
-                    trailing: Icon(Icons.arrow_forward_ios),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => UpdateDetails()),
-                      );
-                    },
-                  )),
+                visible: showUpgradeDetails,
+                child: ListTile(
+                  title: Text('Update details'),
+                  trailing: Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => UpdateDetails()),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ],
@@ -177,37 +204,14 @@ class _UserAccountState extends State<UserAccount> {
     );
   }
 
-  Future<Map<String, dynamic>> getUserDetails() async {
-    String? branch, year, stream, staffID, regNo, privilege,hostelName,hostelType,hostelFloor;
-    DocumentReference detailsRetrievingRef = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
-
-    year = await sharedPreferences.getSecurePrefsValue("YEAR");
-    branch = await sharedPreferences.getSecurePrefsValue("BRANCH");
-    regNo = await sharedPreferences.getSecurePrefsValue("REGISTRATION NUMBER");
-    staffID = await sharedPreferences.getSecurePrefsValue("STAFF ID");
-    privilege = await sharedPreferences.getSecurePrefsValue("PRIVILEGE");
-    stream = await sharedPreferences.getSecurePrefsValue("STREAM");
-    hostelType = await sharedPreferences.getSecurePrefsValue("HOSTEL TYPE");
-    hostelFloor = await sharedPreferences.getSecurePrefsValue("HOSTEL FLOOR");
-    hostelName = await sharedPreferences.getSecurePrefsValue("HOSTEL NAME");
+  Future<void> getUserDetails() async {
+    name = await sharedPreferences.getSecurePrefsValue('NAME');
+    privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
 
     if (privilege == 'STUDENT') {
-      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/STUDENTDETAILS/$year/$branch/$stream/$regNo');
-
-    } else if (privilege == 'FACULTY ADVISOR' ||
-        privilege == 'YEAR COORDINATOR' ||
-        privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR' ||
-        privilege == 'HOD') {
-      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/STAFF DETAILS/$branch/$staffID');
-    } else if(privilege=='HOSTEL WARDEN'){
-      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS STAFF DETAILS/$hostelName/$hostelFloor');
+      regNo = await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
+    } else if (privilege == 'FACULTY ADVISOR' || privilege == 'HOD' || privilege == 'YEAR COORDINATOR' || privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
+      regNo = await sharedPreferences.getSecurePrefsValue('STAFF ID');
     }
-    print('accountDocRef: ${detailsRetrievingRef.path}');
-
-    Map<String, dynamic> userDetails = await firebaseService.getMapDetailsFromDoc(detailsRetrievingRef);
-    userDetails.remove('FCM TOKEN');
-    userDetails.remove('UID');
-
-    return userDetails;
   }
 }

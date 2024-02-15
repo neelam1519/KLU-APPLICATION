@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -11,13 +9,10 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:klu_flutter/provider.dart';
 import 'package:klu_flutter/services/pushnotificationservice.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
-import 'package:klu_flutter/utils/readers.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
-import 'package:klu_flutter/utils/storage.dart';
 import 'package:klu_flutter/utils/utils.dart';
 import 'package:provider/provider.dart';
 import 'package:sign_in_button/sign_in_button.dart';
-import 'package:http/http.dart' as http;
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import 'home.dart';
@@ -112,32 +107,57 @@ class MyHomePage extends StatelessWidget {
 
   final String title;
   const MyHomePage({required this.title, Key? key}) : super(key: key);
-  
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.green,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              height: 60.0,
-              width: 250.0,
-              child: SignInButton(
-                Buttons.google,
-                onPressed: () {
-                  checkInternetAndSignIn(context);
-                },
+        child: Container(
+          alignment: Alignment.topCenter, // Align the container to the top center
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/images/signinimage.png', // Replace 'your_image.png' with your actual image asset path
+                width: 250.0, // Adjust width as needed
+                height: 250.0, // Adjust height as needed
               ),
-            ),
-          ],
+              SizedBox(height: 0), // Add spacing below the image
+              Text(
+                'myUniv', // Replace with your desired text
+                style: TextStyle(
+                  fontSize: 60.0, // Adjust font size as needed
+                  fontWeight: FontWeight.bold, // Set font weight to bold
+                  fontStyle: FontStyle.normal, // Set font style to italic
+                ),
+              ),
+              SizedBox(height: 40.0), // Add spacing below the text
+              Container(
+                child: SignInButton(
+                  Buttons.googleDark,
+                  onPressed: () {
+                    checkInternetAndSignIn(context);
+                  },
+                ),
+              ),
+              SizedBox(height: 30.0), // Add spacing below the image
+              Center(
+                child: Text(
+                  'Stay connected with your \n university', // Replace with your desired text
+                  textAlign: TextAlign.center, // Center align the text horizontally
+                  style: TextStyle(
+                    fontSize: 15.0, // Adjust font size as needed
+                    fontWeight: FontWeight.normal, // Set font weight to normal
+                    fontStyle: FontStyle.normal, // Set font style to normal
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-
   Future<void> checkInternetAndSignIn(BuildContext context) async {
     Utils utils=Utils();
     final connectivityResult = await Connectivity().checkConnectivity();
@@ -188,7 +208,7 @@ class MyHomePage extends StatelessWidget {
 
           DocumentReference detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS');
 
-            lecturerOrStudent='STAFF';
+          lecturerOrStudent='STAFF';
 
           if(lecturerOrStudent == 'STUDENT'){
             detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');

@@ -176,7 +176,7 @@ class _LeaveFormState extends State<LeaveForm> {
 
     twilioFlutter.sendSMS(
         toNumber : number,
-        messageBody : 'This is from MyUniv leave applied by your son/daughter');
+        messageBody : 'This is from MyUniv leave applied');
 
     Map<String,dynamic> data={};
 

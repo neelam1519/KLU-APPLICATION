@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:klu_flutter/utils/shraredprefs.dart';
-import 'package:klu_flutter/utils/utils.dart';
 
-class AcademicDetails extends StatefulWidget {
+import '../utils/shraredprefs.dart';
+
+class HostelDetails extends StatefulWidget {
   @override
-  _AcademicDetailsState createState() => _AcademicDetailsState();
+  _HostelDetailsState createState() => _HostelDetailsState();
 }
 
-class _AcademicDetailsState extends State<AcademicDetails> {
+class _HostelDetailsState extends State<HostelDetails> {
   final SharedPreferences sharedPreferences = SharedPreferences();
-  Utils utils=Utils();
   String? privilege;
   List<String> data = [];
 
@@ -24,15 +23,9 @@ class _AcademicDetailsState extends State<AcademicDetails> {
     privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
 
     if (privilege == 'STUDENT') {
-      data = ['NAME', 'REGISTRATION NUMBER','EMAIL ID', 'YEAR', 'BRANCH', 'STREAM'];
-    } else if (privilege == 'FACULTY ADVISOR') {
-      data = ['FACULTY ADVISOR YEAR', 'FACULTY ADVISOR STREAM','SECTION','SLOT'];
-    }else if(privilege == 'YEAR COORDINATOR' || privilege == 'HOD' ){
-      data = ['YEAR COORDINATOR YEAR', 'YEAR COORDINATOR STREAM'];
-    }else if(privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR'){
-      data=['FACULTY ADVISOR YEAR', 'FACULTY ADVISOR STREAM','SECTION','SLOT','YEAR COORDINATOR YEAR', 'YEAR COORDINATOR STREAM'];
-    }else{
-      utils.showToastMessage('Unabe to get Details', context);
+      data = ['HOSTEL NAME','HOSTEL ROOM NUMBER','HOSTEL FLOOR NUMBER'];
+    } else if (privilege == 'LECTURERS' || privilege == 'YEAR COORDINATOR' || privilege == 'HOD' || privilege == 'FACULTY ADVISOR' || privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
+      data = ['NAME', 'STAFF ID', 'YEAR', 'BRANCH'];
     }
   }
 
@@ -40,7 +33,7 @@ class _AcademicDetailsState extends State<AcademicDetails> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Academic Details'),
+        title: Text('Faculty Details'),
       ),
       body: Center(
         child: FutureBuilder(
