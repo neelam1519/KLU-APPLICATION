@@ -101,7 +101,7 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('ID: ${cardData['LEAVE ID']}'),
-                Text('Status: ${cardData['VERIFICATION']}'),
+                Text('Status: ${cardData['VERIFICATION STATUS']}'),
               ],
             ),
           ],
@@ -127,5 +127,4 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
       ),
     );
   }
-
 }

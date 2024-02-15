@@ -54,7 +54,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
   Widget build(BuildContext context) {
     List<String> orderOfDetails = ['LEAVE ID', 'START DATE', 'RETURN DATE', 'REGISTRATION NUMBER', 'NAME', 'YEAR', 'BRANCH', 'STREAM',
       'SECTION', 'FACULTY ADVISOR STAFF ID', 'STUDENT MOBILE NUMBER', 'PARENTS MOBILE NUMBER', 'REASON', 'HOSTEL NAME', 'HOSTEL ROOM NUMBER',
-      'FACULTY ADVISOR APPROVAL', 'YEAR COORDINATOR APPROVAL', 'HOSTEL WARDEN APPROVAL', 'VERIFICATION'];
+      'FACULTY ADVISOR APPROVAL', 'YEAR COORDINATOR APPROVAL', 'HOSTEL WARDEN APPROVAL', 'VERIFICATION STATUS'];
 
     return Scaffold(
       appBar: AppBar(
@@ -153,31 +153,31 @@ class _LeaveDataState extends State<LeaveDetailsView> {
 
       utils.showDefaultLoading();
       CollectionReference leaveRef=await utils.DocumentToCollection(lecturerReference);
-      DocumentReference redirectingRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS');
+      DocumentReference redirectingRef=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
       DocumentReference? value;
       String field='';
       String? faYear = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
       String? faStream = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
       String? faBranch = await sharedPreferences.getSecurePrefsValue('BRANCH');
       String? hostelName=studentLeaveDetails['HOSTEL NAME'];
-      String? hostelFloor=studentLeaveDetails['HOSTEL ROOM NUMBER'];
+      String? hostelFloor=studentLeaveDetails['HOSTEL FLOOR NUMBER'];
       String? hostelType=studentLeaveDetails['HOSTEL TYPE'];
 
       String verified='PENDING';
 
       if(privilege=='FACULTY ADVISOR') {
 
-        redirectingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$faYear/$faBranch/YEAR COORDINATOR/$faStream/LEAVE FORMS/PENDING');
+        redirectingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$faYear/$faBranch/YEARCOORDINATOR/$faStream/LEAVEFORMS/PENDING');
         print('onAccept ${redirectingRef.toString()}');
         field='FACULTY ADVISOR APPROVAL';
 
       }else if(privilege=='YEAR COORDINATOR' || privilege=='HOD'){
-        redirectingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/${hostelFloor!.substring(0,1)}/PENDING');
+        redirectingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/$hostelFloor/PENDING');
         print('onAccept ${redirectingRef.toString()}');
         field='YEAR COORDINATOR APPROVAL';
       }else if(privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
         if(widget.type=='SECTION'){
-          redirectingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$faYear/$faBranch/YEAR COORDINATOR/$faStream/LEAVE FORMS/PENDING');
+          redirectingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$faYear/$faBranch/YEARCOORDINATOR/$faStream/LEAVEFORMS/PENDING');
           print('onAccept ${redirectingRef.toString()}');
           field='FACULTY ADVISOR APPROVAL';
         }else if(widget.type=='YEAR COORDINATOR'){
@@ -189,6 +189,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
         field='HOSTEL WARDEN APPROVAL';
         verified='APPROVED';
       }
+
       await realtimeDatabase.incrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/'
           '${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/ACCEPTED');
 
@@ -197,19 +198,23 @@ class _LeaveDataState extends State<LeaveDetailsView> {
 
       value = await firebaseService.getDocumentReferenceFieldValue(leaveRef.doc('PENDING'), widget.leaveid);
       print('onAccept ${value.toString()}');
+
       await firebaseService.storeDocumentReference(leaveRef.doc('ACCEPTED'), widget.leaveid, value!);
       await firebaseService.deleteField(leaveRef.doc('PENDING'), widget.leaveid);
-      await firebaseService.updateBooleanField(value.collection('LEAVE FORMS').doc(widget.leaveid),field, true);
-      await firebaseService.storeDocumentReference(redirectingRef, widget.leaveid, value);
-      Map<String,String> dataVerification={};
-      dataVerification.addAll({'VERIFICATION': verified});
-      await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVE FORMS').doc(widget.leaveid), dataVerification,staffID!);
+
+      Map<String,dynamic> data={field:'APPROVED','VERIFICATION STATUS':verified};
+      print("Updating Fields: ${data.toString()}");
+      print('Redirecting Reference: ${redirectingRef.path}');
+
+      await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVEFORMS').doc(widget.leaveid),data,staffID!);
+      if(privilege !='HOSTEL WARDEN'){
+        await firebaseService.storeDocumentReference(redirectingRef, widget.leaveid, value);
+      }
 
       Navigator.pop(context);
 
       EasyLoading.dismiss();
     } catch (e) {
-      // Handle errors
       utils.exceptions(e,'onAccept');
       utils.showToastMessage('Error is occured try after some time', context);
       EasyLoading.dismiss();
@@ -227,25 +232,25 @@ class _LeaveDataState extends State<LeaveDetailsView> {
 
       if(privilege=='FACULTY ADVISOR') {
 
-        field='FACULTY ADVISOR DECLINED';
+        field='FACULTY ADVISOR APPROVAL';
 
       }else if(privilege=='YEAR COORDINATOR' || privilege=='HOD'){
 
-        field='FACULTY ADVISOR DECLINED';
+        field='YEAR COORDINATOR APPROVAL';
 
       }else if(privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
         if(widget.type=='SECTION'){
 
-          field='FACULTY ADVISOR DECLINED';
+          field='FACULTY ADVISOR APPROVAL';
 
         }else if(widget.type=='YEAR COORDINATOR'){
 
-          field='FACULTY ADVISOR DECLINED';
+          field='YEAR COORDINATOR APPROVAL';
 
         }
       }else if(privilege=='HOSTEL WARDEN'){
 
-        field='HOSTEL WARDEN DECLINED';
+        field='HOSTEL WARDEN APPROVAL';
 
       }else{
         utils.showToastMessage('Error occured while rejecting', context);
@@ -257,14 +262,13 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       await realtimeDatabase.decrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/'
           '${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/PENDING');
 
+      Map<String,dynamic> data={field:'REJECTED','VERIFICATION STATUS':'REJECTED'};
+
       value = await firebaseService.getDocumentReferenceFieldValue(collectionReference.doc('PENDING'), widget.leaveid);
       await firebaseService.storeDocumentReference(collectionReference.doc('REJECTED'), widget.leaveid, value!);
       await firebaseService.deleteField(collectionReference.doc('PENDING'), widget.leaveid);
-      await firebaseService.updateBooleanField(value.collection('LEAVE FORMS').doc(widget.leaveid), field, true);
 
-      Map<String,String> dataVerification={};
-      dataVerification.addAll({'VERIFICATION': field});
-      await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVE FORMS').doc(widget.leaveid), dataVerification,staffID!);
+      await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVEFORMS').doc(widget.leaveid), data,staffID!);
 
       Navigator.pop(context);
       EasyLoading.dismiss();
@@ -342,8 +346,8 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       String? branch=await sharedPreferences.getSecurePrefsValue('BRANCH');
       String? section=await sharedPreferences.getSecurePrefsValue('SECTION');
 
-      DocumentReference documentRefForStudent=FirebaseFirestore.instance.doc("KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo/LEAVE FORMS/${widget.leaveid}");
-      DocumentReference documentRefForTeacher=FirebaseFirestore.instance.doc("KLU/CLASS ROOM DETAILS/$year/$branch/$stream/$section/LEAVE FORMS/PENDING");
+      DocumentReference documentRefForStudent=FirebaseFirestore.instance.doc("KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo/LEAVEFORMS/${widget.leaveid}");
+      DocumentReference documentRefForTeacher=FirebaseFirestore.instance.doc("KLU/CLASS ROOM DETAILS/$year/$branch/$stream/$section/LEAVEFORMS/PENDING");
 
       await firebaseService.deleteDocument(documentRefForStudent);
       await firebaseService.deleteField(documentRefForTeacher, widget.leaveid);

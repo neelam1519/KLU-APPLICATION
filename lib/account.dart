@@ -192,7 +192,7 @@ class _UserAccountState extends State<UserAccount> {
     hostelName = await sharedPreferences.getSecurePrefsValue("HOSTEL NAME");
 
     if (privilege == 'STUDENT') {
-      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo');
+      detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/STUDENTDETAILS/$year/$branch/$stream/$regNo');
 
     } else if (privilege == 'FACULTY ADVISOR' ||
         privilege == 'YEAR COORDINATOR' ||

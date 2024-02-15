@@ -24,6 +24,16 @@ class FirebaseService {
     }
   }
 
+  Future<void> updateFieldsInDoc(DocumentReference documentReference, Map<String, dynamic> dataToUpdate) async {
+    try {
+      await documentReference.update(dataToUpdate);
+      print('Fields updated successfully!');
+    } catch (error) {
+      print('Error updating fields: $error');
+      // Handle the error as needed
+    }
+  }
+
   Future<Map<String, dynamic>> getMapDetailsFromDoc(DocumentReference documentReference) async {
     try {
       // Get the document snapshot

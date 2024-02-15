@@ -184,19 +184,18 @@ class MyHomePage extends StatelessWidget {
 
           await utils.getImageBytesFromUrl(imageUrl);
 
-
           String? lecturerOrStudent=await utils.lecturerORStudent(regNo);
 
           DocumentReference detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS');
 
-          //lecturerOrStudent='STAFF';
+            lecturerOrStudent='STAFF';
 
           if(lecturerOrStudent == 'STUDENT'){
             detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
 
             detailsRef.get().then((DocumentSnapshot snapshot) async {
               if (snapshot.exists) {
-                print('Document exists!');
+                print('Document exists! :${detailsRef.path}');
 
                 data.addAll({'UID': userId, 'FCMTOKEN': fcmToken!});
                 await firebaseService.uploadMapDetailsToDoc(detailsRef, data,regNo);
@@ -233,7 +232,7 @@ class MyHomePage extends StatelessWidget {
             });
 
           }else if(lecturerOrStudent=='STAFF') {
-            List<String> positions = ['LECTURERS', 'WARDEN'];
+            List<String> positions = ['LECTURERS', 'WARDENS'];
 
             try {
               bool emailFound = false;
@@ -241,9 +240,11 @@ class MyHomePage extends StatelessWidget {
               for (String position in positions) {
                 CollectionReference collectionReference = FirebaseFirestore.instance.collection('KLU/STAFFDETAILS/$position');
                 List<String> documents = await firebaseService.getDocuments(collectionReference);
+                print('userId  ${userId}');
 
                 for (String document in documents) {
                   detailsRef = collectionReference.doc(document);
+                  print("DocRef: ${detailsRef.path}");
                   String value = await firebaseService.getSpecificFieldValue(detailsRef, 'EMAIL ID');
 
                   if (value == email) {

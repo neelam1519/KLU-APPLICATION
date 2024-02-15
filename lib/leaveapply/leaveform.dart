@@ -145,7 +145,7 @@ class _LeaveFormState extends State<LeaveForm> {
     String returnDate=endDateController.text;
 
     if(reason.length<=10){
-      utils.showToastMessage('REASON SHOULD BE ATLEAST 20 LETTERS', context);
+      utils.showToastMessage('REASON SHOULD BE ATLEAST 10 LETTERS', context);
       EasyLoading.dismiss();
       return;
     }
@@ -174,15 +174,16 @@ class _LeaveFormState extends State<LeaveForm> {
     String number='+91${parentMobileNumber.trim()}';
     print('toNumber: ${number}');
 
-    // twilioFlutter.sendSMS(
-    //     toNumber : number,
-    //     messageBody : 'This is from MyUniv leave applied');
+    twilioFlutter.sendSMS(
+        toNumber : number,
+        messageBody : 'This is from MyUniv leave applied by your son/daughter');
 
     Map<String,dynamic> data={};
 
     data.addAll({'LEAVE ID': leaveCount,'REGISTRATION NUMBER': regNo,'PARENTS MOBILE NUMBER': parentMobileNumber,'STUDENT MOBILE NUMBER': studentMobileNumber,
-      'REASON': reason,'START DATE': startDate,'RETURN DATE':returnDate,'FACULTY ADVISOR APPROVAL': false,'YEAR COORDINATOR APPROVAL':false,
-        'HOSTEL WARDEN APPROVAL' :false,'FACULTY ADVISOR DECLINED' :false, 'YEAR COORDINATOR DECLINED' : false,'HOSTEL WARDEN DECLINED' : false,'VERIFICATION':'PENDING'});
+      'REASON': reason,'START DATE': startDate,'RETURN DATE':returnDate,'FACULTY ADVISOR APPROVAL': 'PENDING','YEAR COORDINATOR APPROVAL':'PENDING',
+      'HOSTEL WARDEN APPROVAL' :'PENDING','VERIFICATION STATUS':'PENDING','HOSTEL NAME':'BHARATHI MENS HOSTEL', 'HOSTEL FLOOR NUMBER': '2',
+      'HOSTEL ROOM NUMBER': '215'});
 
     DocumentReference studentRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
     await firebaseService.uploadMapDetailsToDoc(studentRef.collection('LEAVEFORMS').doc(leaveCount), data,regNo!);

@@ -104,17 +104,16 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   Future<void> data() async{
     print('Retrieving the data');
 
-    hodYear = await sharedPreferences.getSecurePrefsValue('YEAR');
+    hodYear = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
     yearCoordinatorStream =await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR STREAM');
     branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
     yearCoordinatorYear = await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
     faYear = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
     faStream = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
-    faSection = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
+    faSection = await sharedPreferences.getSecurePrefsValue('SECTION');
     hostelName = await sharedPreferences.getSecurePrefsValue('HOSTEL NAME');
-    hostelFloor = await sharedPreferences.getSecurePrefsValue('HOSTEL FLOOR');
+    hostelFloor = await sharedPreferences.getSecurePrefsValue('HOSTEL FLOOR NUMBER');
     hostelType = await sharedPreferences.getSecurePrefsValue('HOSTEL TYPE');
-    faSection = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR SECTION');
 
 
     print('YEAR COORDINATOR STREAM: $yearCoordinatorStream');
@@ -153,15 +152,15 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
           case 'YEAR COORDINATOR':
 
-            detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$branch/YEAR COORDINATOR/$selectedSpinnerOption1/LEAVE FORMS/$leaveFormType');
+            detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$branch/YEARCOORDINATOR/$selectedSpinnerOption1/LEAVEFORMS/$leaveFormType');
             break;
 
           case 'FACULTY ADVISOR AND YEAR COORDINATOR':
 
             if (selectedSpinnerOption1 == 'SECTION') {
-              detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASS ROOM DETAILS/$faYear/$branch/$faStream/$selectedSpinnerOption2/LEAVE FORMS/$leaveFormType');
+              detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASSROOMDETAILS/$faYear/$branch/$faStream/$selectedSpinnerOption2/LEAVEFORMS/$leaveFormType');
             } else if (selectedSpinnerOption1 == 'YEAR COORDINATOR') {
-              detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/${branch ?? 'branch'}/YEAR COORDINATOR/${yearCoordinatorStream ?? 'stream'}/LEAVE FORMS/$leaveFormType');
+              detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/${branch ?? 'branch'}/YEARCOORDINATOR/${yearCoordinatorStream ?? 'stream'}/LEAVEFORMS/$leaveFormType');
             }
             break;
 
@@ -319,7 +318,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           } else if (snapshot.hasError) {
             return Text('Error: ${snapshot.error}');
           } else {
-            print('datalist: ${dataList.toString()}');
+            print('dataList: ${dataList.toString()}');
             return SingleChildScrollView(
               child: Column(
                 children: [
@@ -629,142 +628,169 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     return StreamBuilder<DocumentSnapshot>(
       stream: detailsRetrievingRef!.snapshots(),
       builder: (context, snapshot) {
-        print('buildTab snapshot: ${snapshot.toString()}');
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || !snapshot.data!.exists) {
-          return Center(
-            child: Container(
-              padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(5),
-                color: Colors.grey[200],
-              ),
-              child: Text(
-                'No $leaveFormType Forms Available',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red, // Customize the color
+        try {
+          print('buildTab snapshot: ${snapshot.toString()}');
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || !snapshot.data!.exists) {
+            return Center(
+              child: Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(5),
+                  color: Colors.grey[200],
+                ),
+                child: Text(
+                  'No $leaveFormType Forms Available',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red, // Customize the color
+                  ),
                 ),
               ),
-            ),
-          );
-        } else {
-          Map<String, dynamic> leaveCardData = snapshot.data!.data() as Map<String, dynamic>;
-          print('LEAVECARD DATA: ${leaveCardData.toString()}');
+            );
+          } else {
+            Map<String, dynamic> leaveCardData = snapshot.data!.data() as Map<
+                String,
+                dynamic>;
+            print('LEAVECARD DATA: ${leaveCardData.toString()}');
 
-          return FutureBuilder<Map<String, dynamic>>(
-            future: retrieveData(leaveCardData),
-            builder: (context, dataSnapshot) {
-              if (dataSnapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              } else if (dataSnapshot.hasError) {
-                return Center(child: Text('Error: ${dataSnapshot.error}'));
-              }  else if (!dataSnapshot.hasData || dataSnapshot.data!.isEmpty) {
-                return Center(
-                  child: Container(
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(5),
-                      color: Colors.grey[200],
-                    ),
-                    child: Text(
-                      'No $leaveFormType Forms Available',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red, // Customize the color
+            return FutureBuilder<Map<String, dynamic>>(
+              future: retrieveData(leaveCardData),
+              builder: (context, dataSnapshot) {
+                if (dataSnapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                } else if (dataSnapshot.hasError) {
+                  return Center(child: Text('Error: ${dataSnapshot.error}'));
+                } else
+                if (!dataSnapshot.hasData || dataSnapshot.data!.isEmpty) {
+                  return Center(
+                    child: Container(
+                      padding: EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(5),
+                        color: Colors.grey[200],
                       ),
-                    ),
-                  ),
-                );
-              } else {
-                Map<String, dynamic> data = dataSnapshot.data!;
-                print('buildTab: ${data.toString()}');
-
-                return ListView.builder(
-                  itemCount: data.length,
-                  itemBuilder: (context, index) {
-                    String key = data.keys.elementAt(index);
-                    print('ListView.builder  key=$key');
-                    Map<String, dynamic> value = data[key];
-
-                    return Card(
-                      child: ListTile(
-                        title: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Start: ${value['START DATE']}'),
-                                Text(" TO "),
-                                Text('Return: ${value['RETURN DATE']}'),
-                              ],
-                            ),
-                            SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('ID: ${value['LEAVE ID']}'),
-                                Text('Status: ${value['VERIFICATION']}'),
-                              ],
-                            ),
-                          ],
+                      child: Text(
+                        'No $leaveFormType Forms Available',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red, // Customize the color
                         ),
-                        onTap: () async {
-                          // Navigate to leave data screen
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LeaveDetailsView(
-                                leaveid: value['LEAVE ID'],
-                                leaveformtype: leaveFormType,
-                                lecturerRef: detailsRetrievingRef!.path,
-                                type: selectedSpinnerOption1,
-                              ),
-                            ),
-                          );
-                        },
                       ),
-                    );
-                  },
-                );
-              }
-            },
-          );
+                    ),
+                  );
+                } else {
+                  Map<String, dynamic> data = dataSnapshot.data!;
+                  print('buildTab: ${data.toString()}');
+
+                  return ListView.builder(
+                    itemCount: data.length,
+                    itemBuilder: (context, index) {
+                      String key = data.keys.elementAt(index);
+                      print('ListView.builder  key=$key');
+                      Map<String, dynamic> value = data[key];
+
+                      return Card(
+                        child: ListTile(
+                          title: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment
+                                    .spaceBetween,
+                                children: [
+                                  Text('Start: ${value['START DATE']}'),
+                                  Text(" TO "),
+                                  Text('Return: ${value['RETURN DATE']}'),
+                                ],
+                              ),
+                              SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment
+                                    .spaceBetween,
+                                children: [
+                                  Text('ID: ${value['LEAVE ID']}'),
+                                  Text('Status: ${value['VERIFICATION STATUS']}'),
+                                ],
+                              ),
+                            ],
+                          ),
+                          onTap: () async {
+                            // Navigate to leave data screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    LeaveDetailsView(
+                                      leaveid: value['LEAVE ID'],
+                                      leaveformtype: leaveFormType,
+                                      lecturerRef: detailsRetrievingRef!.path,
+                                      type: selectedSpinnerOption1,
+                                    ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  );
+                }
+              },
+            );
+          }
+        }catch(e){
+          print('Error in buildTab: $e}');
+          return Container();
         }
       },
     );
   }
 
   Future<Map<String, dynamic>> retrieveData(Map<String, dynamic> leaveCardData) async {
-    List<String> dataRequired = ['START DATE', 'RETURN DATE', 'LEAVE ID','VERIFICATION'];
+    List<String> dataRequired = ['START DATE', 'RETURN DATE', 'LEAVE ID', 'VERIFICATION STATUS'];
     // Map to store retrieved data
     Map<String, dynamic> retrievedDataMap = {};
     print('leaveCardData:${leaveCardData.toString()}');
+    leaveCardData.remove('verificationID');
 
-    for (MapEntry<String, dynamic> entry in leaveCardData.entries) {
-      String key = entry.key;
-      DocumentReference value = entry.value;
-      studentLeaveForms = value.collection('LEAVE FORMS').doc(key);
+    try {
+      for (MapEntry<String, dynamic> entry in leaveCardData.entries) {
+        String key = entry.key;
+        DocumentReference value = entry.value;
+        studentLeaveForms = value.collection('LEAVEFORMS').doc(key);
 
-      // Retrieve data for the current entry
-      Map<String, dynamic>? retrievedData = await firebaseService.getValuesFromDocRef(studentLeaveForms, dataRequired);
-      retrievedDataMap[key] = retrievedData;
-    }
+        // Retrieve data for the current entry
+        Map<String, dynamic>? retrievedData = await firebaseService.getValuesFromDocRef(studentLeaveForms, dataRequired);
 
-    for (MapEntry<String, dynamic> entry in retrievedDataMap.entries) {
-      String key = entry.key;
-      dynamic value = entry.value;
-      print('retrievedDataMap: $key : $value');
+        retrievedDataMap[key] = retrievedData;
+      }
+
+      // Sort retrievedDataMap based on the leaveId in descending order
+      retrievedDataMap = sortMapByLeaveIdDescending(retrievedDataMap);
+
+      for (MapEntry<String, dynamic> entry in retrievedDataMap.entries) {
+        String key = entry.key;
+        dynamic value = entry.value;
+        print('retrievedDataMap: $key : $value');
+      }
+    } catch (e) {
+      print('retriveData: $e');
     }
     // Return the map containing all retrieved data
     return retrievedDataMap;
   }
+
+  Map<String, dynamic> sortMapByLeaveIdDescending(Map<String, dynamic> dataMap) {
+    List<MapEntry<String, dynamic>> sortedEntries = dataMap.entries.toList();
+    sortedEntries.sort((a, b) => (b.value['LEAVE ID']).compareTo(a.value['LEAVE ID']));
+    return Map.fromEntries(sortedEntries);
+  }
+
 
   Future<void> showAlertDialog(BuildContext context) async{
     // Show the alert dialog
@@ -830,7 +856,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
             'HOSTEL ROOM NUMBER',
             'HOSTEL TYPE'
           ];
-          Map<String, dynamic>? userDetails = await firebaseService.getValuesFromDocRef(value, requiredFieldNames);
+          Map<String, dynamic>? userDetails = await firebaseService.getValuesFromDocRef(value.collection('LEAVEFORMS').doc(key), requiredFieldNames);
 
           // Extract required fields
           String hostelName = userDetails!['HOSTEL NAME'];

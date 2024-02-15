@@ -35,7 +35,7 @@ class _UpdateDetailsState extends State<UpdateDetails> {
 
   Future<void> getData() async{
     print('getData started');
-   String? year=await sharedPreferences.getSecurePrefsValue('YEAR');
+   String? year=await sharedPreferences.getSecurePrefsValue('YEAR COORDINATOR YEAR');
    branch= await sharedPreferences.getSecurePrefsValue('BRANCH');
    yearList=year!.split(',');
    privilege=await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
@@ -188,65 +188,75 @@ class _UpdateDetailsState extends State<UpdateDetails> {
         return;
       }
 
-      // Map<String, String> studentTotalDetails = {};
-      // List<String> studentRegNo = await reader.getColumnValues(studentFilePath, 'REGISTRATION NUMBER');
-      //
-      // for (String regNo in studentRegNo) {
-      //
-      //   Map<String, String> studentDetails = await reader.readExcelFile(studentFilePath, {'REGISTRATION NUMBER': regNo.trim()});
-      //   print('StudentDetails: ${studentDetails.toString()} ');
-      //   if (studentDetails.isEmpty) {
-      //     print('No details found for student with registration number: $regNo');
-      //     continue;
-      //   }
-      //
-      //   Map<String, String> faDetails = await reader.readExcelFile(faFilePath, {'SECTION': studentDetails['SECTION']!});
-      //   print('faDetails: ${faDetails.toString()} ');
-      //   if (faDetails.isEmpty) {
-      //     print('No FA details found for student with registration number: $regNo');
-      //     continue;
-      //   }
-      //
-      //   Map<String, String> adminDetails = await reader.readExcelFile(adminsFilePath, {
-      //     'BRANCH': faDetails['BRANCH']!,
-      //     'STREAM': faDetails['STREAM']!,
-      //     'YEAR': faDetails['YEAR']!
-      //   });
-      //   print('adminDetails: ${adminDetails.toString()} ');
-      //   if (adminDetails.isEmpty) {
-      //     print('No admin details found for student with registration number: $regNo');
-      //     continue;
-      //   }
-      //
-      //   studentTotalDetails.addAll(studentDetails);
-      //
-      //   studentTotalDetails.addAll({
-      //     'PRIVILEGE': 'STUDENT',
-      //     'SLOT': faDetails['SLOT']!,
-      //     'YEAR': faDetails['YEAR']!,
-      //     'SECTION': faDetails['SECTION']!,
-      //     'BRANCH': faDetails['BRANCH']!,
-      //     'STREAM': faDetails['STREAM']!,
-      //     'FACULTY ADVISOR NAME': faDetails['NAME']!,
-      //     'FACULTY ADVISOR STAFF ID': faDetails['STAFF ID']!,
-      //     'YEAR COORDINATOR STAFF ID': adminDetails['STAFF ID']!,
-      //     'YEAR COORDINATOR NAME': adminDetails['NAME']!
-      //   });
-      //
-      //   for (MapEntry<String, String> entry in studentTotalDetails.entries) {
-      //     String key = entry.key;
-      //     String value = entry.value;
-      //
-      //     if(utils.isRomanNumeral(value)){
-      //       int roman=utils.romanToInteger(value);
-      //       studentTotalDetails[key] = roman.toString();
-      //     }
-      //   }
-      //   DocumentReference studentDetailsRef=FirebaseFirestore.instance.doc('/KLU/STUDENTDETAILS/${studentTotalDetails['YEAR']}/${studentTotalDetails['REGISTRATION NUMBER']}');
-      //   print('studentDocumentReference: ${studentDetailsRef.path}');
-      //
-      //   await firebaseService.uploadMapDetailsToDoc(studentDetailsRef,studentTotalDetails);
-      // }
+      Map<String, String> studentTotalDetails = {};
+      List<String> studentRegNo = await reader.getColumnValues(studentFilePath, 'REGISTRATION NUMBER');
+
+      for (String regNo in studentRegNo) {
+        Map<String, String> studentDetails = await reader.readExcelFile(studentFilePath, {'REGISTRATION NUMBER': regNo.trim()});
+        print('StudentDetails: ${studentDetails.toString()} ');
+
+        // Check if studentDetails is null or empty, if so, initialize it as an empty map
+        if (studentDetails == null || studentDetails.isEmpty) {
+          print('No details found for student with registration number: $regNo');
+          studentDetails = {};
+        }
+
+        Map<String, String> faDetails = await reader.readExcelFile(faFilePath, {'SECTION': studentDetails['SECTION']!});
+        print('faDetails: ${faDetails.toString()} ');
+
+        if (faDetails.isEmpty) {
+          print('No FA details found for student with registration number: $regNo');
+          continue;
+        }
+
+        Map<String, String> adminDetails = await reader.readExcelFile(adminsFilePath, {
+          'BRANCH': faDetails['BRANCH']!,
+          'STREAM': faDetails['FACULTY ADVISOR STREAM']!,
+          'YEAR': faDetails['FACULTY ADVISOR YEAR']!
+        });
+        print('adminDetails: ${adminDetails.toString()} ');
+
+        if (adminDetails.isEmpty) {
+          print('No admin details found for student with registration number: $regNo');
+          continue;
+        }
+
+        // Add details to studentTotalDetails
+        studentTotalDetails.addAll(studentDetails);
+
+        // Ensure that missing values are initialized as empty strings
+        studentTotalDetails.addAll({
+          'PRIVILEGE': 'STUDENT',
+          'SLOT': faDetails['SLOT'] ?? '',
+          'YEAR': faDetails['FACULTY ADVISOR YEAR'] ?? '',
+          'SECTION': faDetails['SECTION'] ?? '',
+          'BRANCH': faDetails['BRANCH'] ?? '',
+          'STREAM': faDetails['FACULTY ADVISOR STREAM'] ?? '',
+          'FACULTY ADVISOR NAME': faDetails['NAME'] ?? '',
+          'FACULTY ADVISOR STAFF ID': faDetails['STAFF ID'] ?? '',
+          'YEAR COORDINATOR STAFF ID': adminDetails['STAFF ID'] ?? '',
+          'YEAR COORDINATOR NAME': adminDetails['NAME'] ?? ''
+        });
+
+        // Convert Roman numerals to integers
+        for (MapEntry<String, String> entry in studentTotalDetails.entries) {
+          String key = entry.key;
+          String value = entry.value;
+
+          if(utils.isRomanNumeral(value)){
+            int roman=utils.romanToInteger(value);
+            studentTotalDetails[key] = roman.toString();
+          }
+        }
+
+        // Create Firestore document reference
+        DocumentReference studentDetailsRef = FirebaseFirestore.instance.doc('/KLU/STUDENTDETAILS/${studentTotalDetails['YEAR']}/${studentTotalDetails['REGISTRATION NUMBER']}');
+        print('studentDocumentReference: ${studentDetailsRef.path}');
+
+        // Upload student details to Firestore
+        await firebaseService.uploadMapDetailsToDoc(studentDetailsRef, studentTotalDetails, regNo);
+      }
+
 
       Map<String,Map<String, String>> faTotalDetails={};
       Map<String, String> faDetails = {};
@@ -286,14 +296,20 @@ class _UpdateDetailsState extends State<UpdateDetails> {
 
       faTotalDetails.forEach((key, value) {
         if (adminsTotalDetails.containsKey(key)) {
-          // If the key exists in both faDetails and adminDetails, add it to commonValues
-          commonValues[key] = value;
+          // If the key exists in both faTotalDetails and adminsTotalDetails
+          // Merge the values
+          Map<String, String> mergedValues = {};
+          mergedValues.addAll(value); // Add all values from faTotalDetails
+          mergedValues.addAll(adminsTotalDetails[key]!); // Add all values from adminsTotalDetails
+
+          // Add the merged values to commonValues
+          commonValues[key] = mergedValues;
         }
       });
 
       commonValues.keys.forEach((key) {
-        faDetails.remove(key);
-        adminDetails.remove(key);
+        faTotalDetails.remove(key);
+        adminsTotalDetails.remove(key);
       });
 
 
@@ -307,13 +323,15 @@ class _UpdateDetailsState extends State<UpdateDetails> {
       Map<String, Map<String, String>> combinedMap = {};
 
       combinedMap.addAll(commonValues);
-      combinedMap.addAll(adminsTotalDetails);
+      print('Common Values: ${commonValues.toString()}');
       combinedMap.addAll(faTotalDetails);
-
+      combinedMap.addAll(adminsTotalDetails);
 
       for (String key in combinedMap.keys) {
         Map<String, String> value = combinedMap[key]!;
         Map<String, String> updatedValue = {};
+
+        print('Values: ${value}');
 
         // Process the values in 'value' map
         for (String rkey in value.keys) {

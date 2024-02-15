@@ -12,9 +12,11 @@ import 'package:klu_flutter/account.dart';
 import 'package:klu_flutter/leaveapply/lecturerleaveformsview.dart';
 import 'package:klu_flutter/leaveapply/studentformsview.dart';
 import 'package:klu_flutter/main.dart';
+import 'package:klu_flutter/security/EncryptionService.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
 
 class Home extends StatefulWidget {
 
@@ -29,10 +31,13 @@ class _HomeState extends State<Home> {
   SharedPreferences sharedPreferences = SharedPreferences();
   final FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
   FirebaseFirestore firebaseFirestore=FirebaseFirestore.instance;
+  EncryptionService encryptionService=EncryptionService();
   Utils utils=Utils();
 
   String? name,email,privilege,fcmToken,year,regNo;
   Uint8List? imageBytes;
+  late encrypt.Key key;
+  late String userKey;
 
   @override
   void initState() {
@@ -48,6 +53,8 @@ class _HomeState extends State<Home> {
 
   Future<void> initializeData()async{
     privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE') ?? '';
+
+
     if(await utils.checkInternetConnectivity()){
       getDetails();
       requestNotificationPermissions();
@@ -178,7 +185,7 @@ class _HomeState extends State<Home> {
         Navigator.push(context, MaterialPageRoute(builder: (context) => StudentsLeaveFormsView()));
 
       }else{
-        utils.showToastMessage('unable to say your position', context);
+        //utils.showToastMessage('unable to say your position', context);
       }
     }else{
       utils.showToastMessage('Check your internet connection', context);
@@ -189,16 +196,21 @@ class _HomeState extends State<Home> {
     utils.showDefaultLoading();
     try {
       DocumentReference detailsRef = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
+      print('Privilege: $privilege');
 
       if (privilege == 'STUDENT') {
         regNo = await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
         year = await utils.getYearFromRegNo(regNo!);
 
         detailsRef = FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
-      } else if(privilege == 'LECTURERS' || privilege == 'YEAR COORDINATOR' || privilege == 'LECTURER' || privilege=='HOD'){
+      } else if(privilege == 'LECTURERS' || privilege == 'YEAR COORDINATOR' || privilege == 'LECTURERS' || privilege=='HOD' || privilege=='FACULTY ADVISOR' || privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
         String? staffID = await sharedPreferences.getSecurePrefsValue('STAFF ID');
 
-        detailsRef = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/$privilege/$staffID');
+        detailsRef = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/LECTURERS/$staffID');
+      }else if(privilege=='WARDENS' || privilege =='HOSTEL WARDEN'){
+        String? staffID=await sharedPreferences.getSecurePrefsValue('STAFF ID');
+        detailsRef=FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/WARDENS/$staffID');
+
       }else{
         utils.showToastMessage('NO DATA FOUND', context);
         EasyLoading.dismiss();
@@ -216,6 +228,7 @@ class _HomeState extends State<Home> {
 
       print('privilege: ${await sharedPreferences.getSecurePrefsValue('PRIVILEGE')}');
 
+      privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE') ?? '';
       name = await sharedPreferences.getSecurePrefsValue('NAME');
       email = await sharedPreferences.getSecurePrefsValue('EMAIL ID');
 
@@ -299,10 +312,10 @@ class _HomeState extends State<Home> {
         case 'FACULTY ADVISOR':
         case 'YEAR COORDINATOR':
         case 'FACULTY ADVISOR AND YEAR COORDINATOR':
-        documentReference = FirebaseFirestore.instance.doc('KLU/STAFF DETAILS/$branch/$staffID');
+        documentReference = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/$branch/$staffID');
           break;
         case 'STUDENT':
-          documentReference = firebaseFirestore.doc('KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo/');
+          documentReference = firebaseFirestore.doc('KLU/STUDENTDETAILS/$year/$branch/$stream/$regNo/');
           break;
         case 'HOSTEL WARDEN':
           documentReference = firebaseFirestore.doc('KLU/HOSTEL WARDEN DETAILS/$hostelName/$wardenID');

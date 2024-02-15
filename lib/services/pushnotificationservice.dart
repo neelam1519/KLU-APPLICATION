@@ -45,8 +45,8 @@ class PushNotificationService {
 
   void showLocalNotification(String title, String body) {
     const androidNotificationDetail = AndroidNotificationDetails(
-      '0', // channel Id
-      'general', // channel
+      'LEAVE FORM', // channel Id
+      'KLU', // channel
     );
     const iosNotificatonDetail = DarwinNotificationDetails();
     const notificationDetails = NotificationDetails(
