@@ -10,6 +10,7 @@ class FirebaseService {
 
   Future<void> uploadMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data, String ID) async {
     try {
+      print('Data: ${data.toString()}  ID: ${ID.toString()}');
       // Use SetOptions to merge data if the document exists, create if it doesn't
       print('uploadMapDetailsToDoc: ${documentReference.path}');
       await documentReference.set({

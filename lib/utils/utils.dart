@@ -16,49 +16,6 @@ import 'package:path_provider/path_provider.dart';
 
 class Utils {
 
-    Future<void> openFile() async {
-      print('OpenFile');
-      final String filePath = 'N:/Keys/GCP API KEYS/service_account_key.json';
-      print('File path: ${filePath.toString()}');
-      final File file = File(filePath);
-
-      if (file.existsSync()) {
-        print('File exists: $filePath');
-
-        try {
-          final String fileContents = file.readAsStringSync();
-          print('File contents: $fileContents');
-        } catch (e) {
-          print('Error reading file: $e');
-        }
-      } else {
-        print('File does not exist: $filePath');
-      }
-
-    }
-
-
-  // Future<void> checkFilePermissions(String filePath) async {
-  //   File file = File(filePath);
-  //
-  //   // Check if the file exists
-  //   if (await file.exists()) {
-  //     print('File exists: $filePath');
-  //
-  //     // Check file permissions
-  //     final bool isReadable = await file.stat().then((fileStat) => fileStat.mode & 0x124 != 0);
-  //     final bool isWritable = await file.stat().then((fileStat) => fileStat.mode & 0x92 != 0);
-  //     final bool isExecutable = await file.stat().then((fileStat) => fileStat.mode & 0x49 != 0);
-  //
-  //     print('Readable: $isReadable');
-  //     print('Writable: $isWritable');
-  //     print('Executable: $isExecutable');
-  //   } else {
-  //     print('File does not exist: $filePath');
-  //   }
-  // }
-
-
   Future<void> showToastMessage(String message, BuildContext context) async {
     showToast(
       message,
@@ -73,10 +30,11 @@ class Utils {
     );
   }
 
+
   void showDefaultLoading() {
     EasyLoading.show(
       status: 'Loading...',
-      maskType: EasyLoadingMaskType.black, // or EasyLoadingMaskType.clear
+      maskType: EasyLoadingMaskType.black,
     );
   }
 
@@ -224,6 +182,7 @@ class Utils {
     // Get the Firestore instance and return the new CollectionReference
     return FirebaseFirestore.instance.collection(collectionPath);
   }
+
   String getTime(){
     DateTime now = DateTime.now();
     String formattedDate = DateFormat('dd-MM-yyyy').format(now);

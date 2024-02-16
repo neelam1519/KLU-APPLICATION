@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:googleapis/apigeeregistry/v1.dart';
 import 'package:klu_flutter/leaveapply/studentformsview.dart';
 import 'package:klu_flutter/utils/RealtimeDatabase.dart';
 import 'package:klu_flutter/utils/utils.dart';
@@ -54,7 +55,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
   Widget build(BuildContext context) {
     List<String> orderOfDetails = ['LEAVE ID', 'START DATE', 'RETURN DATE', 'REGISTRATION NUMBER', 'NAME', 'YEAR', 'BRANCH', 'STREAM',
       'SECTION', 'FACULTY ADVISOR STAFF ID', 'STUDENT MOBILE NUMBER', 'PARENTS MOBILE NUMBER', 'REASON', 'HOSTEL NAME', 'HOSTEL ROOM NUMBER',
-      'FACULTY ADVISOR APPROVAL', 'YEAR COORDINATOR APPROVAL', 'HOSTEL WARDEN APPROVAL', 'VERIFICATION STATUS'];
+      'FACULTY ADVISOR APPROVAL', 'YEAR COORDINATOR APPROVAL', 'HOSTEL WARDEN APPROVAL', 'VERIFICATION STATUS','REASON FOR REJECTION'];
 
     return Scaffold(
       appBar: AppBar(
@@ -68,7 +69,11 @@ class _LeaveDataState extends State<LeaveDetailsView> {
             children: [
               // Your existing details display
               ...orderOfDetails.map((detailKey) {
-                String detailValue = totalLeaveDetails[detailKey].toString() ?? '';
+                String detailValue = totalLeaveDetails[detailKey]?.toString() ?? ''; // Use null-aware operator to check for null value
+                // Check if detailValue is empty or null, if so, don't display it
+                if (detailValue.isEmpty) {
+                  return SizedBox(); // Return an empty SizedBox if detailValue is empty or null
+                }
                 return Column(
                   children: [
                     RichText(
@@ -107,23 +112,6 @@ class _LeaveDataState extends State<LeaveDetailsView> {
                         Text('Accept'), // Text for the accept button
                       ],
                     ),
-                  if (shouldShowDeleteButton)
-                    Column(
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed: () {
-                            // Handle delete button press
-                            if(!shouldShowDelete()){
-                              deleteDetails(context);
-                            }else{
-                              utils.showToastMessage('You cant delete the accepted form', context);
-                            }
-                          },
-                        ),
-                        Text('Delete'), // Text for the delete button
-                      ],
-                    ),
                   if (shouldShowRejectButton)
                     Column(
                       children: [
@@ -131,7 +119,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
                           icon: Icon(Icons.close),
                           onPressed: () {
                             // Handle reject button press
-                            onReject();
+                            showRejectionDialog(context);
 
                           },
                         ),
@@ -146,6 +134,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       ),
     );
   }
+
 
   Future<void> onAccept() async {
     print('onAccept: ');
@@ -222,13 +211,12 @@ class _LeaveDataState extends State<LeaveDetailsView> {
     }
   }
 
-  Future<void> onReject() async{
+  Future<void> onReject(String reason, BuildContext rejContext) async {
     print('onReject: ');
     try {
-      utils.showDefaultLoading();
       DocumentReference? value;
-      CollectionReference collectionReference=await utils.DocumentToCollection(lecturerReference);
-      String field='';
+      CollectionReference collectionReference = await utils.DocumentToCollection(lecturerReference);
+      String field = '';
 
       if(privilege=='FACULTY ADVISOR') {
 
@@ -256,42 +244,103 @@ class _LeaveDataState extends State<LeaveDetailsView> {
         utils.showToastMessage('Error occured while rejecting', context);
         return;
       }
-      await realtimeDatabase.incrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/'
-          '${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/REJECTED');
+      print('Incrementing leave count...');
+      await realtimeDatabase.incrementLeaveCount(
+          '/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/REJECTED'
+      );
 
-      await realtimeDatabase.decrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/'
-          '${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/PENDING');
+      print('Decrementing leave count...');
+      await realtimeDatabase.decrementLeaveCount(
+          '/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/PENDING'
+      );
 
-      Map<String,dynamic> data={field:'REJECTED','VERIFICATION STATUS':'REJECTED'};
+      Map<String, dynamic> data = {
+        field: 'REJECTED',
+        'VERIFICATION STATUS': 'REJECTED',
+        'REASON FOR REJECTION': reason
+      };
 
-      value = await firebaseService.getDocumentReferenceFieldValue(collectionReference.doc('PENDING'), widget.leaveid);
-      await firebaseService.storeDocumentReference(collectionReference.doc('REJECTED'), widget.leaveid, value!);
-      await firebaseService.deleteField(collectionReference.doc('PENDING'), widget.leaveid);
+      print('Getting document reference field value...');
+      value = await firebaseService.getDocumentReferenceFieldValue(
+          collectionReference.doc('PENDING'), widget.leaveid
+      );
 
-      await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVEFORMS').doc(widget.leaveid), data,staffID!);
+      print('Storing document reference...');
+      await firebaseService.storeDocumentReference(
+          collectionReference.doc('REJECTED'), widget.leaveid, value!
+      );
 
-      Navigator.pop(context);
+      print('Deleting field...');
+      await firebaseService.deleteField(
+          collectionReference.doc('PENDING'), widget.leaveid
+      );
+
+      print('Uploading map details to doc...');
+      await firebaseService.uploadMapDetailsToDoc(
+          value.collection('LEAVEFORMS').doc(widget.leaveid), data, staffID!
+      );
+
+      Navigator.pop(context); // Pop the screen
+
       EasyLoading.dismiss();
 
     } catch (e) {
       // Handle errors
       EasyLoading.dismiss();
-      utils.showToastMessage('Error is occured try after some time', context);
-      utils.exceptions(e,'onReject');
+      utils.showToastMessage('Error occurred, please try again later', context);
+      print('Error onReject: $e');
+      utils.exceptions(e, 'onReject');
       // You might want to add proper error handling here, depending on your application's requirements
     }
   }
 
-  bool shouldShowDelete() {
-    dynamic faApproval = studentLeaveDetails['FACULTY ADVISOR APPROVAL'] ?? false;
-    dynamic faDecline = studentLeaveDetails['FACULTY ADVISOR DECLINED'] ?? false;
-    dynamic yearCoordinatorApproval = studentLeaveDetails['YEAR COORDINATOR APPROVAL'] ?? false;
-    dynamic yearCoordinatorDecline = studentLeaveDetails['YEAR COORDINATOR DECLINED'] ?? false;
-    dynamic hostelWardenDecline = studentLeaveDetails['HOSTEL WARDEN DECLINED'] ?? false;
-    dynamic hostelWardenApproval = studentLeaveDetails['HOSTEL WARDEN APPROVAL'] ?? false;
 
-    return faApproval || yearCoordinatorApproval || hostelWardenApproval ||
-        faDecline || yearCoordinatorDecline || hostelWardenDecline;
+  void showRejectionDialog(BuildContext context) {
+    String rejectionReason = '';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Reason for Rejection'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                onChanged: (value) {
+                  rejectionReason = value;
+                },
+                decoration: InputDecoration(
+                  hintText: 'Enter reason...',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: null,
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (rejectionReason.isEmpty) {
+                  utils.showToastMessage('Reason should not be null', context);
+                } else {
+                  utils.showDefaultLoading();
+                  Navigator.of(context).pop(); // Close dialog
+                  onReject(rejectionReason, context);
+                }
+              },
+              child: Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<Map<String,dynamic>> getLeaveDetails() async {
@@ -337,30 +386,4 @@ class _LeaveDataState extends State<LeaveDetailsView> {
     }
   }
 
-  Future<void> deleteDetails(BuildContext context) async {
-    try {
-      utils.showDefaultLoading();
-      String? year=await sharedPreferences.getSecurePrefsValue('YEAR');
-      String? stream=await sharedPreferences.getSecurePrefsValue('STREAM');
-      String? regNo=await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
-      String? branch=await sharedPreferences.getSecurePrefsValue('BRANCH');
-      String? section=await sharedPreferences.getSecurePrefsValue('SECTION');
-
-      DocumentReference documentRefForStudent=FirebaseFirestore.instance.doc("KLU/STUDENT DETAILS/$year/$branch/$stream/$regNo/LEAVEFORMS/${widget.leaveid}");
-      DocumentReference documentRefForTeacher=FirebaseFirestore.instance.doc("KLU/CLASS ROOM DETAILS/$year/$branch/$stream/$section/LEAVEFORMS/PENDING");
-
-      await firebaseService.deleteDocument(documentRefForStudent);
-      await firebaseService.deleteField(documentRefForTeacher, widget.leaveid);
-
-      EasyLoading.dismiss();
-      // Pop the current route and any previous StudentsLeaveApply routes
-      Navigator.pop(context);
-      utils.showToastMessage("Sucessfully deleted", context);
-      // Safely access currentContext using null-aware operator
-    } catch (error) {
-      EasyLoading.dismiss();
-      print('Error deleting field ${widget.leaveid}: $error');
-      utils.showToastMessage("Problem in deleting", context);
-    }
-  }
 }

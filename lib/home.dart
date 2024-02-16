@@ -12,6 +12,7 @@ import 'package:klu_flutter/account.dart';
 import 'package:klu_flutter/leaveapply/lecturerleaveformsview.dart';
 import 'package:klu_flutter/leaveapply/studentformsview.dart';
 import 'package:klu_flutter/main.dart';
+import 'package:klu_flutter/review.dart';
 import 'package:klu_flutter/security/EncryptionService.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
@@ -153,6 +154,16 @@ class _HomeState extends State<Home> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => UserAccount()),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.rate_review),
+                  title: Text('Review'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Review()),
                     );
                   },
                 ),
