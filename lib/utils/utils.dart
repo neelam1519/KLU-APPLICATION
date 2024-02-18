@@ -11,6 +11,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 import 'package:intl/intl.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:path_provider/path_provider.dart';
 
 
@@ -29,8 +30,6 @@ class Utils {
       reverseCurve: Curves.elasticIn,
     );
   }
-
-
   void showDefaultLoading() {
     EasyLoading.show(
       status: 'Loading...',

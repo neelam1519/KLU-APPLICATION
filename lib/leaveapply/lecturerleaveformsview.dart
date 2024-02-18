@@ -753,6 +753,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   }
 
   Future<Map<String, dynamic>> retrieveData(Map<String, dynamic> leaveCardData) async {
+    print('Retrieve Data Started');
     List<String> dataRequired = ['START DATE', 'RETURN DATE', 'LEAVE ID', 'VERIFICATION STATUS'];
     // Map to store retrieved data
     Map<String, dynamic> retrievedDataMap = {};
@@ -772,7 +773,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
       }
 
       // Sort retrievedDataMap based on the leaveId in descending order
-      retrievedDataMap = sortMapByLeaveIdDescending(retrievedDataMap);
+      retrievedDataMap = sortMapByLeaveId(retrievedDataMap);
 
       for (MapEntry<String, dynamic> entry in retrievedDataMap.entries) {
         String key = entry.key;
@@ -786,14 +787,24 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     return retrievedDataMap;
   }
 
-  Map<String, dynamic> sortMapByLeaveIdDescending(Map<String, dynamic> dataMap) {
+  Map<String, dynamic> sortMapByLeaveId(Map<String, dynamic> dataMap, {bool descending = true}) {
     List<MapEntry<String, dynamic>> sortedEntries = dataMap.entries.toList();
-    sortedEntries.sort((a, b) => (b.value['LEAVE ID']).compareTo(a.value['LEAVE ID']));
+    sortedEntries.sort((a, b) {
+      // Convert LEAVE ID values to integers for comparison
+      int leaveIdA = int.tryParse(a.value['LEAVE ID'].toString()) ?? 0;
+      int leaveIdB = int.tryParse(b.value['LEAVE ID'].toString()) ?? 0;
+      if (descending) {
+        return leaveIdB.compareTo(leaveIdA);
+      } else {
+        return leaveIdA.compareTo(leaveIdB);
+      }
+    });
     return Map.fromEntries(sortedEntries);
   }
 
 
-  Future<void> showAlertDialog(BuildContext context) async{
+
+  Future<void> showAlertDialog(BuildContext context) async {
     // Show the alert dialog
     showDialog(
       context: context,
@@ -804,19 +815,17 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           actions: [
             TextButton(
               onPressed: () async {
-                utils.showDefaultLoading();
-                // Handle the "OK" button press
-                await acceptAllForms();
                 Navigator.of(context).pop(); // Close the dialog
-                EasyLoading.dismiss();
-                // Add your logic for the "OK" action here
+                utils.showDefaultLoading(); // Show loading dialog
+                // Handle the "OK" button press
+                await acceptAllForms(); // Start the acceptAllForms process
               },
               child: Text('OK'),
             ),
             TextButton(
               onPressed: () {
-                // Handle the "Cancel" button press
                 Navigator.of(context).pop(); // Close the dialog
+                // Handle the "Cancel" button press
                 // Add your logic for the "Cancel" action here
               },
               child: Text('Cancel'),
@@ -827,10 +836,10 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     );
   }
 
+
   Future<void> acceptAllForms() async {
     try {
       if (widget.privilege == 'YEAR COORDINATOR' || widget.privilege == 'HOD' || widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
-        utils.showDefaultLoading();
 
         CollectionReference collectionReference = await utils.DocumentToCollection(detailsRetrievingRef!);
         print('Collection Ref Accept all: ${detailsRetrievingRef!.path}');
@@ -846,7 +855,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           DocumentReference value = entry.value;
 
           Map<String,dynamic> data={};
-          data.addAll({'YEAR COORDINATOR APPROVAL':true});
+          data.addAll({'YEAR COORDINATOR APPROVAL':'APPROVED'});
 
           // Update YEAR COORDINATOR APPROVAL to true
           await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVEFORMS').doc(key),data,staffID! );
@@ -875,6 +884,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
           // Move the form to HOSTEL PENDING collection
           DocumentReference hostelRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/$hostelFloor/PENDING');
+          print('Redirecting Ref: ${hostelRef.path}');
 
           await firebaseService.uploadMapDetailsToDoc(hostelRef, data,staffID!);
 

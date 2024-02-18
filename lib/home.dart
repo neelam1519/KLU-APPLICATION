@@ -53,8 +53,9 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> initializeData()async{
+    //print('uniqueKey: ${encryptionService.generateKeyFromUid('99210041602')}');
+    encryptionService.encryptData('99210041602');
     privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE') ?? '';
-
 
     if(await utils.checkInternetConnectivity()){
       getDetails();
