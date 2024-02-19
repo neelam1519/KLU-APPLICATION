@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:intl/intl.dart';
 import 'package:klu_flutter/leaveapply/leavedetailsview.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/RealtimeDatabase.dart';
@@ -754,10 +755,16 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
   Future<Map<String, dynamic>> retrieveData(Map<String, dynamic> leaveCardData) async {
     print('Retrieve Data Started');
-    List<String> dataRequired = ['START DATE', 'RETURN DATE', 'LEAVE ID', 'VERIFICATION STATUS'];
+    List<String> dataRequired=[];
+
+    if(leaveFormType == 'PENDING'){
+      dataRequired = ['START DATE', 'RETURN DATE', 'LEAVE ID', 'VERIFICATION STATUS'];
+
+    }else{
+      dataRequired = ['START DATE', 'RETURN DATE', 'LEAVE ID', 'VERIFICATION STATUS','$staffID TIMESTAMP'];
+    }
     // Map to store retrieved data
     Map<String, dynamic> retrievedDataMap = {};
-    print('leaveCardData:${leaveCardData.toString()}');
     leaveCardData.remove('verificationID');
 
     try {
@@ -772,13 +779,17 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
         retrievedDataMap[key] = retrievedData;
       }
 
-      // Sort retrievedDataMap based on the leaveId in descending order
-      retrievedDataMap = sortMapByLeaveId(retrievedDataMap);
-
       for (MapEntry<String, dynamic> entry in retrievedDataMap.entries) {
         String key = entry.key;
         dynamic value = entry.value;
         print('retrievedDataMap: $key : $value');
+      }
+      // Sort retrievedDataMap based on the leaveId in descending order
+      if(leaveFormType == 'PENDING'){
+        retrievedDataMap = sortMapByLeaveId(retrievedDataMap);
+
+      }else{
+        retrievedDataMap = sortMapByTimestamp(retrievedDataMap);
       }
     } catch (e) {
       print('retriveData: $e');
@@ -787,21 +798,51 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     return retrievedDataMap;
   }
 
-  Map<String, dynamic> sortMapByLeaveId(Map<String, dynamic> dataMap, {bool descending = true}) {
+  Map<String, dynamic> sortMapByLeaveId(Map<String, dynamic> dataMap, {bool descending = false}) {
+    print('sort by leaveID');
     List<MapEntry<String, dynamic>> sortedEntries = dataMap.entries.toList();
     sortedEntries.sort((a, b) {
       // Convert LEAVE ID values to integers for comparison
       int leaveIdA = int.tryParse(a.value['LEAVE ID'].toString()) ?? 0;
       int leaveIdB = int.tryParse(b.value['LEAVE ID'].toString()) ?? 0;
       if (descending) {
-        return leaveIdB.compareTo(leaveIdA);
+        return leaveIdB.compareTo(leaveIdA); // Sort in descending order
       } else {
-        return leaveIdA.compareTo(leaveIdB);
+        return leaveIdA.compareTo(leaveIdB); // Sort in ascending order
       }
     });
     return Map.fromEntries(sortedEntries);
   }
 
+  Map<String, dynamic> sortMapByTimestamp(Map<String, dynamic> dataMap, {bool descending = true}) {
+    print('sort by Timestamp');
+    List<MapEntry<String, dynamic>> sortedEntries = dataMap.entries.toList();
+    print('${dataMap['TIMESTAMP']}');
+    print(dataMap.toString());
+    sortedEntries.sort((a, b) {
+      // Extract timestamps for comparison
+      int timestampA = a.value['$staffID TIMESTAMP'];
+      int timestampB = b.value['$staffID TIMESTAMP'];
+
+      // Print timestamps
+      print('Timestamp A: $timestampA');
+      print('Timestamp B: $timestampB');
+
+      if (descending) {
+        return timestampB.compareTo(timestampA); // Sort in descending order
+      } else {
+        return timestampA.compareTo(timestampB); // Sort in ascending order
+      }
+    });
+
+    // Print sorted timestamps
+    print('Sorted Timestamps:');
+    sortedEntries.forEach((entry) {
+      print(entry.value['${widget.privilege} STATUS CHANGED TIMESTAMP']);
+    });
+
+    return Map.fromEntries(sortedEntries);
+  }
 
 
   Future<void> showAlertDialog(BuildContext context) async {

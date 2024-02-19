@@ -39,23 +39,5 @@
                 android:name="flutterEmbedding"
                 android:value="2" />
 
-            <meta-data
-                android:name="google_analytics_adid_collection_enabled"
-                android:value="true" />
-
-            <meta-data
-                android:name="com.google.firebase.messaging.default_notification_channel_id"
-                android:value="your_channel_id" />
-
-            <receiver android:name="com.example.klu_flutter.ScheduledNotificationBootReceiver"
-                android:exported="true"> <!-- This attribute should be inside the receiver tag -->
-                <intent-filter>
-                    <action android:name="android.intent.action.BOOT_COMPLETED"/>
-                    <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
-                </intent-filter>
-            </receiver>
-
-
-
         </application>
     </manifest>

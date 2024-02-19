@@ -17,6 +17,21 @@ import 'package:path_provider/path_provider.dart';
 
 class Utils {
 
+
+  String getEmail(){
+    FirebaseAuth firebaseAuth=FirebaseAuth.instance;
+    String email='unknownEmail';
+    User? user=firebaseAuth.currentUser;
+    if (user != null) {
+      // Access the user's email
+      email = user.email!;
+      print('Current user\'s email: $email');
+    } else {
+      print('No user is currently logged in.');
+    }
+    return email;
+  }
+
   Future<void> showToastMessage(String message, BuildContext context) async {
     showToast(
       message,
@@ -182,12 +197,19 @@ class Utils {
     return FirebaseFirestore.instance.collection(collectionPath);
   }
 
+
+
   String getTime(){
     DateTime now = DateTime.now();
     String formattedDate = DateFormat('dd-MM-yyyy').format(now);
     print('Formatted Date: $formattedDate');
     return formattedDate;
   }
+
+  int getCurrentTimeStamp() {
+    return DateTime.now().millisecondsSinceEpoch;
+  }
+
 
   List<String> getOneWeekDates() {
     // Get today's date

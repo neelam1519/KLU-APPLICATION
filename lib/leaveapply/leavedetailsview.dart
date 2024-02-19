@@ -198,7 +198,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       await firebaseService.deleteField(leaveRef.doc('PENDING'), widget.leaveid);
 
       data.clear();
-      data={field:'APPROVED','VERIFICATION STATUS':verified};
+      data={field:'APPROVED','VERIFICATION STATUS':verified,'$staffID TIMESTAMP': utils.getCurrentTimeStamp()};
       print("Updating Fields: ${data.toString()}");
       print('Redirecting Reference: ${redirectingRef.path}');
 

@@ -3,6 +3,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:klu_flutter/leaveapply/leaveform.dart';
+import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
 
@@ -15,6 +16,7 @@ class StudentsLeaveFormsView extends StatefulWidget {
 
 class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
   SharedPreferences sharedPreferences = SharedPreferences();
+  FirebaseService firebaseService = FirebaseService();
   Utils utils = Utils();
   late CollectionReference studentLeaveRef=FirebaseFirestore.instance.collection('KLU/STUDENTDETAILS/1');
 

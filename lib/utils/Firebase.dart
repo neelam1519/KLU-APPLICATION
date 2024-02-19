@@ -1,19 +1,26 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:encrypt/encrypt.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:googleapis/transcoder/v1.dart';
 import 'package:klu_flutter/model/model.dart';
+import 'package:klu_flutter/security/EncryptionService.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
 
 class FirebaseService {
 
   SharedPreferences sharedPreferences=SharedPreferences();
+  EncryptionService encryptionService=EncryptionService();
   Utils utils=Utils();
   FirebaseFirestore firestore = FirebaseFirestore.instance;
 
+
   Future<void> uploadMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data, String ID) async {
     try {
-      print('Data: ${data.toString()}  ID: ${ID.toString()}');
-      // Use SetOptions to merge data if the document exists, create if it doesn't
-      print('uploadMapDetailsToDoc: ${documentReference.path}');
+
+      print('Convert Encrypted Data: ${data.toString()}');
       await documentReference.set({
         ...data, // Include the document data
         'verificationID': ID, // Additional metadata
@@ -30,7 +37,6 @@ class FirebaseService {
     try {
       // Get the document snapshot
       DocumentSnapshot snapshot = await documentReference.get();
-
 
       // Check if the document exists
       if (snapshot.exists) {
