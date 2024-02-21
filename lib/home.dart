@@ -192,8 +192,6 @@ class _HomeState extends State<Home> {
   Future<void> leaveFormClicked() async{
     if(await utils.checkInternetConnectivity()){
 
-      utils.showToastMessage(privilege!, context);
-
       if(privilege=='FACULTY ADVISOR' || privilege=='HOD' || privilege=='YEAR COORDINATOR' || privilege=='FACULTY ADVISOR AND YEAR COORDINATOR' || privilege=='HOSTEL WARDEN'){
         Navigator.push(context, MaterialPageRoute(builder: (context) => LecturerLeaveFormsView(privilege: privilege,)));
 
@@ -212,7 +210,6 @@ class _HomeState extends State<Home> {
     utils.showDefaultLoading();
     try {
       DocumentReference detailsRef = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
-      print('Privilege: $privilege');
 
       if (privilege == 'STUDENT') {
         regNo = await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
@@ -316,10 +313,10 @@ class _HomeState extends State<Home> {
       stream = await sharedPreferences.getSecurePrefsValue("STREAM");
       wardenID = await sharedPreferences.getSecurePrefsValue('HOSTEL WARDEN ID');
 
-      // Get the FCM token
+      // Get the FCMtoken
       String? token = await FirebaseMessaging.instance.getToken();
       if (token == null) {
-        print('Failed to get FCM token.');
+        print('Failed to get FCMtoken.');
         return;
       }
 
@@ -346,8 +343,8 @@ class _HomeState extends State<Home> {
       print('fcmTokenRef: ${documentReference.toString()}');
 
       // Update FCM token in Firestore
-      await documentReference.set({'FCM TOKEN': token}, SetOptions(merge: true));
-      print('FCM TOKEN is updated successfully.');
+      await documentReference.set({'FCMTOKEN': token}, SetOptions(merge: true));
+      print('FCMTOKEN is updated successfully.');
     } catch (e) {
       print('Error in storeFcmToken: $e');
       // Handle any errors that occur during the execution

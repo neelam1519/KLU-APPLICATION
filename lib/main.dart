@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:klu_flutter/firebase_options.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:klu_flutter/provider.dart';
+import 'package:klu_flutter/security/EncryptionService.dart';
 import 'package:klu_flutter/services/pushnotificationservice.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
@@ -14,17 +16,13 @@ import 'package:klu_flutter/utils/utils.dart';
 import 'package:provider/provider.dart';
 import 'package:sign_in_button/sign_in_button.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
 
 import 'home.dart';
 
 void main() async {
 
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  WidgetsFlutterBinding.ensureInitialized();
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  await _initializeFlutterFire();
   runApp(
     MultiProvider(
       providers: [
@@ -33,6 +31,15 @@ void main() async {
       child: MyApp(),
     ),
   );
+}
+
+Future<void> _initializeFlutterFire() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 }
 
 @pragma("vm:entry-point")
@@ -201,6 +208,7 @@ class MyHomePage extends StatelessWidget {
 
           FirebaseService firebaseService = FirebaseService();
           SharedPreferences sharedPreferences=SharedPreferences();
+          EncryptionService encryptionService=EncryptionService();
 
           await utils.getImageBytesFromUrl(imageUrl);
 
@@ -209,6 +217,9 @@ class MyHomePage extends StatelessWidget {
           DocumentReference detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS');
 
           //lecturerOrStudent='STAFF';
+
+          encrypt.Key key=await encryptionService.generateKey('$email');
+          print('GeneratedKey: ${key.base64}');
 
           if(lecturerOrStudent == 'STUDENT'){
             detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
@@ -223,6 +234,7 @@ class MyHomePage extends StatelessWidget {
                 sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', 'STUDENT');
                 sharedPreferences.storeValueInSecurePrefs('REGISTRATION NUMBER', regNo);
                 sharedPreferences.storeValueInSecurePrefs('EMAIL ID', email);
+                sharedPreferences.storeValueInSecurePrefs('PRIVATE KEY', key);
 
                 print('Data: ${data.toString()}');
 

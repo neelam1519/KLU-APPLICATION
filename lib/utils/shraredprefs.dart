@@ -49,7 +49,7 @@ class SharedPreferences{
     }
   }
 
-  Future<void> storeValueInSecurePrefs(String key,String value) async {
+  Future<void> storeValueInSecurePrefs(String key,dynamic value) async {
     try {
       return await storage.write(key: key, value: value);
     } catch (error) {

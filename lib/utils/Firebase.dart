@@ -1,18 +1,40 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:encrypt/encrypt.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:klu_flutter/security/EncryptionService.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
 
 class FirebaseService {
 
   SharedPreferences sharedPreferences=SharedPreferences();
+  EncryptionService encryptionService =EncryptionService();
   Utils utils=Utils();
   FirebaseFirestore firestore = FirebaseFirestore.instance;
+  late Key key;
 
+  Future<void> getKey() async{
+    FirebaseAuth firebaseAuth=FirebaseAuth.instance;
+    String email='';
+    String name='';
+    User? user=firebaseAuth.currentUser;
+    if (user != null) {
+      // Access the user's email
+      email = user.email!;
+      print('Current user\'s email: $email');
+    } else {
+      print('No user is currently logged in.');
+    }
+
+    name=utils.removeDomainFromEmail(email);
+    key=encryptionService.generateKey('$email+$name');
+  }
 
   Future<void> uploadMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data, String ID) async {
     try {
+      await getKey();
 
       print('Convert Encrypted Data: ${data.toString()}');
       await documentReference.set({
