@@ -32,7 +32,7 @@ class _HomeState extends State<Home> {
   SharedPreferences sharedPreferences = SharedPreferences();
   final FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
   FirebaseFirestore firebaseFirestore=FirebaseFirestore.instance;
-  EncryptionService encryptionService=EncryptionService();
+  //EncryptionService encryptionService=EncryptionService();
   Utils utils=Utils();
 
   String? name,email,privilege,fcmToken,year,regNo;
@@ -47,37 +47,38 @@ class _HomeState extends State<Home> {
 
     initializeData();
     loadProfileImageBytes().then((bytes) {
-    setState(() {
       imageBytes = bytes;
-    });});
+    });
   }
 
   Future<void> initializeData()async{
 
-    FirebaseAuth firebaseAuth=FirebaseAuth.instance;
-    User? user=firebaseAuth.currentUser;
-    if (user != null) {
-      // Access the user's email
-      email = user.email!;
-      print('Current user\'s email: $email');
-    } else {
-      print('No user is currently logged in.');
-    }
-
-    print('KmsKey: ${encryptionService.getKmsKey().toString()}');
-
-    print('uniqueKey: ${encryptionService.generateKeyFromUid(email!).base64}');
-    String key=encryptionService.generateKeyFromUid(email!).base64;
-    encryptionService.encryptData(email!,key);
+    // FirebaseAuth firebaseAuth=FirebaseAuth.instance;
+    // User? user=firebaseAuth.currentUser;
+    // if (user != null) {
+    //   // Access the user's email
+    //   email = user.email!;
+    //   print('Current user\'s email: $email');
+    // } else {
+    //   print('No user is currently logged in.');
+    // }
+    //
+    // print('KmsKey: ${await encryptionService.getKmsKey()}');
+    //
+    // print('uniqueKey: ${encryptionService.generateKeyFromUid(email!).base64}');
+    //
+    // String key=encryptionService.generateKeyFromUid(email!).base64;
+    // encryptionService.encryptData(email!,key);
 
     privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE') ?? '';
 
     if(await utils.checkInternetConnectivity()){
       getDetails();
       requestNotificationPermissions();
-      //storeFcmToken();
+      storeFcmToken();
     }else{
       utils.showToastMessage('Check your internet connection', context);
+      EasyLoading.dismiss();
     }
   }
 
@@ -88,62 +89,50 @@ class _HomeState extends State<Home> {
           SystemNavigator.pop();
           return true;
         },
-    child: Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        title: Text('Home Page'),
-        automaticallyImplyLeading: false,
-        leading: IconButton(
-          icon: Icon(Icons.menu),
-          onPressed: () {
-            _scaffoldKey.currentState?.openDrawer();
-          },
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
+        child: Scaffold(
+          key: _scaffoldKey,
+          appBar: AppBar(
+            title: Text('Home Page'),
+            automaticallyImplyLeading: false,
+            leading: IconButton(
+              icon: Icon(Icons.menu),
+              onPressed: () {
+                _scaffoldKey.currentState?.openDrawer();
+              },
+            ),
+          ),
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               children: [
-                Expanded(
-                  child: Column(
+                Padding(
+                  padding: const EdgeInsets.only(left: 30.0), // Adjust the value according to your needs
+                  child: Row(
                     children: [
-                      InkWell(
-                        onTap: () async {
-
-                          leaveFormClicked();
-
-                        },
-                        child: Image.asset('assets/images/leaveicon.png', width: 130, height: 120, fit: BoxFit.cover),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              InkWell(
+                                onTap: () async {
+                                  leaveFormClicked();
+                                },
+                                child: Image.asset('assets/images/leaveicon.png', width: 130, height: 120, fit: BoxFit.cover),
+                              ),
+                              SizedBox(height: 8),
+                              Text('Apply Leave'),
+                            ],
+                          ),
+                        ),
                       ),
-                      SizedBox(height: 8),
-                      Text('Apply Leave'),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    children: [
-                      InkWell(
-                        onTap: () async {
-
-                          utils.showToastMessage('UNDER DEVELOPMENT', context);
-
-                        },
-                        child: Image.asset('assets/images/KLU_LOGO.png', width: 130, height: 120, fit: BoxFit.cover),
-                      ),
-                      SizedBox(height: 8),
-                      Text('SOC'),
                     ],
                   ),
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
       drawer: Drawer(
         child: Builder(
           builder: (context) {
@@ -244,16 +233,18 @@ class _HomeState extends State<Home> {
         return;
       }
 
+      print('detailsRef: ${detailsRef.path}');
+
       Map<String, dynamic> details = await firebaseService.getMapDetailsFromDoc(detailsRef);
 
       for (MapEntry<String, dynamic> data in details.entries) {
         String key = data.key;
         String value = data.value;
 
+        print('mapValues: $key:  $value');
+
         await sharedPreferences.storeValueInSecurePrefs(key, value);
       }
-
-      print('privilege: ${await sharedPreferences.getSecurePrefsValue('PRIVILEGE')}');
 
       privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE') ?? '';
       name = await sharedPreferences.getSecurePrefsValue('NAME');
@@ -339,13 +330,13 @@ class _HomeState extends State<Home> {
         case 'FACULTY ADVISOR':
         case 'YEAR COORDINATOR':
         case 'FACULTY ADVISOR AND YEAR COORDINATOR':
-        documentReference = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/$branch/$staffID');
+        documentReference = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/LECTURERS/$staffID');
           break;
         case 'STUDENT':
-          documentReference = firebaseFirestore.doc('KLU/STUDENTDETAILS/$year/$branch/$stream/$regNo/');
+          documentReference = firebaseFirestore.doc('KLU/STUDENTDETAILS/$year/$regNo/');
           break;
         case 'HOSTEL WARDEN':
-          documentReference = firebaseFirestore.doc('KLU/HOSTEL WARDEN DETAILS/$hostelName/$wardenID');
+          documentReference = firebaseFirestore.doc('KLU/HOSTELS/$hostelName/$wardenID');
           break;
         default:
           print('Unknown privilege: $privilege');

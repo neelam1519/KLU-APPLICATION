@@ -50,23 +50,23 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCKWX7s5PLXJBZzc-Tc-zVYt7iWezrEXIg',
-    appId: '1:390220804592:android:727bf7d66f3916ce786d35',
-    messagingSenderId: '390220804592',
-    projectId: 'adroit-chemist-368310',
-    databaseURL: 'https://adroit-chemist-368310-default-rtdb.firebaseio.com',
-    storageBucket: 'adroit-chemist-368310.appspot.com',
+    apiKey: 'AIzaSyDQIwnHHf93TmAn-b36yjcR5H_gVHi3eCY',
+    appId: '1:1092181859695:android:424b4555cccbc3003f5c9a',
+    messagingSenderId: '1092181859695',
+    projectId: 'myuniv-ed957',
+    databaseURL: 'https://myuniv-ed957-default-rtdb.firebaseio.com',
+    storageBucket: 'myuniv-ed957.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAGw-jc9Pl-qyAvuIm-9LjH6_jXBf88tTI',
-    appId: '1:390220804592:ios:338ec329b4f35ac5786d35',
-    messagingSenderId: '390220804592',
-    projectId: 'adroit-chemist-368310',
-    databaseURL: 'https://adroit-chemist-368310-default-rtdb.firebaseio.com',
-    storageBucket: 'adroit-chemist-368310.appspot.com',
-    androidClientId: '390220804592-0jlknm18dqoc3f6debiogmfdeo01bscv.apps.googleusercontent.com',
-    iosClientId: '390220804592-29b4df4dg0heuleqhq0bbmiphtij5o2a.apps.googleusercontent.com',
+    apiKey: 'AIzaSyDuVhDugZfNThYRsntJDE6HkzYI5jMKRMU',
+    appId: '1:1092181859695:ios:13e3f9c89b7212613f5c9a',
+    messagingSenderId: '1092181859695',
+    projectId: 'myuniv-ed957',
+    databaseURL: 'https://myuniv-ed957-default-rtdb.firebaseio.com',
+    storageBucket: 'myuniv-ed957.appspot.com',
+    androidClientId: '1092181859695-qd024n5qpqt20da7pcb0t4jfdfc1oe2e.apps.googleusercontent.com',
+    iosClientId: '1092181859695-o9662nv4epem3qj6ptfjdbo3l7qclpcp.apps.googleusercontent.com',
     iosBundleId: 'com.example.kluFlutter',
   );
 }

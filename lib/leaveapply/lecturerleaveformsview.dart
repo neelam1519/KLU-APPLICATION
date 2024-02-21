@@ -154,7 +154,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
           case 'YEAR COORDINATOR':
 
-            detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$branch/YEARCOORDINATOR/$selectedSpinnerOption1/LEAVEFORMS/$leaveFormType');
+            detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$branch/YEARCOORDINATOR/$yearCoordinatorStream/LEAVEFORMS/$leaveFormType');
             break;
 
           case 'FACULTY ADVISOR AND YEAR COORDINATOR':
@@ -162,7 +162,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
             if (selectedSpinnerOption1 == 'SECTION') {
               detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/CLASSROOMDETAILS/$faYear/$branch/$faStream/$selectedSpinnerOption2/LEAVEFORMS/$leaveFormType');
             } else if (selectedSpinnerOption1 == 'YEAR COORDINATOR') {
-              detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/${branch ?? 'branch'}/YEARCOORDINATOR/${yearCoordinatorStream ?? 'stream'}/LEAVEFORMS/$leaveFormType');
+              detailsRetrievingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$selectedSpinnerOption2/$branch/YEARCOORDINATOR/$yearCoordinatorStream/LEAVEFORMS/$leaveFormType');
             }
             break;
 
@@ -877,7 +877,6 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     );
   }
 
-
   Future<void> acceptAllForms() async {
     try {
       if (widget.privilege == 'YEAR COORDINATOR' || widget.privilege == 'HOD' || widget.privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
@@ -887,47 +886,43 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
         // Get the pending forms
         Map<String, dynamic> formRef = await firebaseService.getMapDetailsFromDoc(collectionReference.doc('PENDING'));
+        formRef.remove('verificationID');
 
         print('FormRef: ${formRef.toString()}');
 
         // Loop through each form
         for (MapEntry<String, dynamic> entry in formRef.entries) {
           String key = entry.key;
+          print('Key: $key');
+          if(key=='verificationID'){
+            return;
+          }
           DocumentReference value = entry.value;
 
-          Map<String,dynamic> data={};
-          data.addAll({'YEAR COORDINATOR APPROVAL':'APPROVED'});
+          print('Processing form with key: $key and value: $value');
+
+          Map<String, dynamic> data = {'YEAR COORDINATOR APPROVAL': 'APPROVED'};
 
           // Update YEAR COORDINATOR APPROVAL to true
-          await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVEFORMS').doc(key),data,staffID! );
+          await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVEFORMS').doc(key), data, staffID!);
 
           data.clear();
-          data.addAll({key:value});
+          data.addAll({key: value});
+
+          print('Moving form $key to ACCEPTED collection');
+
           // Move the form to ACCEPTED collection
-          await firebaseService.uploadMapDetailsToDoc(collectionReference.doc('ACCEPTED'), data,staffID!);
+          await firebaseService.uploadMapDetailsToDoc(collectionReference.doc('ACCEPTED'), data, staffID!);
 
-          // // Get required fields
-          // List<String> requiredFieldNames = [
-          //   'HOSTEL NAME',
-          //   'HOSTEL ROOM NUMBER',
-          //   'HOSTEL TYPE'
-          // ];
-          // Map<String, dynamic>? userDetails = await firebaseService.getValuesFromDocRef(value.collection('LEAVEFORMS').doc(key), requiredFieldNames);
-          //
-          // // Extract required fields
-          // String hostelName = userDetails!['HOSTEL NAME'];
-          // String hostelType = userDetails['HOSTEL TYPE'];
-          // String hostelFloor = userDetails['HOSTEL ROOM NUMBER'];
-
-          hostelName='BHARATHI MENS HOSTEL';
-          hostelType='NORMAL';
-          hostelFloor='2';
+          hostelName = 'BHARATHI MENS HOSTEL';
+          hostelType = 'NORMAL';
+          hostelFloor = '2';
 
           // Move the form to HOSTEL PENDING collection
           DocumentReference hostelRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/$hostelFloor/PENDING');
           print('Redirecting Ref: ${hostelRef.path}');
 
-          await firebaseService.uploadMapDetailsToDoc(hostelRef, data,staffID!);
+          await firebaseService.uploadMapDetailsToDoc(hostelRef, data, staffID!);
 
           // Delete the form from the original collection
           await firebaseService.deleteField(detailsRetrievingRef!, key);
@@ -941,5 +936,6 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     }
     EasyLoading.dismiss();
   }
+
 
 }

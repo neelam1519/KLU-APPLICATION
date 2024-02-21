@@ -17,7 +17,6 @@ import 'package:path_provider/path_provider.dart';
 
 class Utils {
 
-
   String getEmail(){
     FirebaseAuth firebaseAuth=FirebaseAuth.instance;
     String email='unknownEmail';

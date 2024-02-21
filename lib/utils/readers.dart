@@ -220,7 +220,6 @@ class Reader{
           } else if (indexes.isEmpty) {
             print('None of the specified values found in the columns.');
           } else {
-            utils.showToastMessage('Duplicates Found', BuildContext as BuildContext);
             print('Multiple indexes found for the specified values.');
           }
         } else {

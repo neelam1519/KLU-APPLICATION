@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:intl/intl.dart';
 import 'package:klu_flutter/utils/RealtimeDatabase.dart';
-import 'package:klu_flutter/utils/loadingdialog.dart';
 import 'package:klu_flutter/utils/utils.dart';
 import '../utils/Firebase.dart';
 import '../utils/shraredprefs.dart';
@@ -151,32 +150,32 @@ class _LeaveFormState extends State<LeaveForm> {
 
       if (reason.length <= 10) {
         utils.showToastMessage('REASON SHOULD BE ATLEAST 10 LETTERS', context);
-        LoadingDialog.stopLoadingDialog(context);
+        EasyLoading.dismiss();
         return;
       }
       if (utils.doesContainEmoji(reason)) {
         utils.showToastMessage(
             'REASON MUST NOT CONTAIN OTHER THAN LETTERS', context);
-        LoadingDialog.stopLoadingDialog(context);
+        EasyLoading.dismiss();
         return;
       }
       if (!utils.isValidMobileNumber(studentMobileNumber) ||
           !utils.isValidMobileNumber(parentMobileNumber)) {
         utils.showToastMessage('ENTER VALID NUMBER', context);
-        LoadingDialog.stopLoadingDialog(context);
+        EasyLoading.dismiss();
         return;
       }
       if (studentMobileNumber == parentMobileNumber) {
         utils.showToastMessage(
             'STUDENT AND PARENT MOBILE NUMBERS ARE SAME', context);
-        LoadingDialog.stopLoadingDialog(context);
+        EasyLoading.dismiss();
         return;
       }
 
       if (startDate.isEmpty || returnDate.isEmpty || reason.isEmpty ||
           studentMobileNumber.isEmpty || parentMobileNumber.isEmpty) {
         utils.showToastMessage('NO EMPTY DATA SHOULD BE THERE', context);
-        LoadingDialog.stopLoadingDialog(context);
+        EasyLoading.dismiss();
         return;
       }
 
@@ -235,10 +234,7 @@ class _LeaveFormState extends State<LeaveForm> {
     }catch(e){
       print('onSubmitButton: $e');
     }
-
   }
-
-
 
   Future<void> selectDate(BuildContext context, TextEditingController controller, bool isStartDate) async {
     DateTime currentDate = DateTime.now();

@@ -1,18 +1,12 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:encrypt/encrypt.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:googleapis/transcoder/v1.dart';
-import 'package:klu_flutter/model/model.dart';
-import 'package:klu_flutter/security/EncryptionService.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
 
 class FirebaseService {
 
   SharedPreferences sharedPreferences=SharedPreferences();
-  EncryptionService encryptionService=EncryptionService();
   Utils utils=Utils();
   FirebaseFirestore firestore = FirebaseFirestore.instance;
 

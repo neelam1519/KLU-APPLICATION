@@ -188,43 +188,41 @@ class _UpdateDetailsState extends State<UpdateDetails> {
         return;
       }
 
-      Map<String, String> studentTotalDetails = {};
       List<String> studentRegNo = await reader.getColumnValues(studentFilePath, 'REGISTRATION NUMBER');
+      print('Students RegNo List: ${studentRegNo.toString()}');
 
-      for (String regNo in studentRegNo) {
+      studentRegNo.forEach((regNo) async {
         Map<String, String> studentDetails = await reader.readExcelFile(studentFilePath, {'REGISTRATION NUMBER': regNo.trim()});
         print('StudentDetails: ${studentDetails.toString()} ');
 
-        // Check if studentDetails is null or empty, if so, initialize it as an empty map
         if (studentDetails == null || studentDetails.isEmpty) {
           print('No details found for student with registration number: $regNo');
-          studentDetails = {};
+          return;
         }
 
         Map<String, String> faDetails = await reader.readExcelFile(faFilePath, {'SECTION': studentDetails['SECTION']!});
-        print('faDetails: ${faDetails.toString()} ');
+        print('studentFaDetails: ${faDetails.toString()} ');
 
         if (faDetails.isEmpty) {
           print('No FA details found for student with registration number: $regNo');
-          continue;
+          return;
         }
 
         Map<String, String> adminDetails = await reader.readExcelFile(adminsFilePath, {
           'BRANCH': faDetails['BRANCH']!,
-          'STREAM': faDetails['FACULTY ADVISOR STREAM']!,
-          'YEAR': faDetails['FACULTY ADVISOR YEAR']!
+          'YEAR COORDINATOR STREAM': faDetails['FACULTY ADVISOR STREAM']!,
+          'YEAR COORDINATOR YEAR': faDetails['FACULTY ADVISOR YEAR']!
         });
-        print('adminDetails: ${adminDetails.toString()} ');
+        print('studentAdminDetails: ${adminDetails.toString()} ');
 
         if (adminDetails.isEmpty) {
           print('No admin details found for student with registration number: $regNo');
-          continue;
+          return;
         }
 
-        // Add details to studentTotalDetails
-        studentTotalDetails.addAll(studentDetails);
+        Map<String, String> studentTotalDetails = {};
 
-        // Ensure that missing values are initialized as empty strings
+        studentTotalDetails.addAll(studentDetails);
         studentTotalDetails.addAll({
           'PRIVILEGE': 'STUDENT',
           'SLOT': faDetails['SLOT'] ?? '',
@@ -238,13 +236,12 @@ class _UpdateDetailsState extends State<UpdateDetails> {
           'YEAR COORDINATOR NAME': adminDetails['NAME'] ?? ''
         });
 
-        // Convert Roman numerals to integers
         for (MapEntry<String, String> entry in studentTotalDetails.entries) {
           String key = entry.key;
           String value = entry.value;
 
-          if(utils.isRomanNumeral(value)){
-            int roman=utils.romanToInteger(value);
+          if (utils.isRomanNumeral(value)) {
+            int roman = utils.romanToInteger(value);
             studentTotalDetails[key] = roman.toString();
           }
         }
@@ -255,7 +252,7 @@ class _UpdateDetailsState extends State<UpdateDetails> {
 
         // Upload student details to Firestore
         await firebaseService.uploadMapDetailsToDoc(studentDetailsRef, studentTotalDetails, regNo);
-      }
+      });
 
 
       Map<String,Map<String, String>> faTotalDetails={};
@@ -331,8 +328,6 @@ class _UpdateDetailsState extends State<UpdateDetails> {
         Map<String, String> value = combinedMap[key]!;
         Map<String, String> updatedValue = {};
 
-        print('Values: ${value}');
-
         // Process the values in 'value' map
         for (String rkey in value.keys) {
           String rvalue = value[rkey]!;
@@ -346,6 +341,10 @@ class _UpdateDetailsState extends State<UpdateDetails> {
               updatedParts.add(part);
             }
           }
+          if(value['YEAR COORDINATOR STREAM']=='ALL STREAMS'){
+            updatedValue['YEAR COORDINATOR STREAM'] = 'AIML,CS,IOT,DS';
+          }
+
 
           updatedValue[rkey] = updatedParts.join(',');
         }
@@ -361,9 +360,9 @@ class _UpdateDetailsState extends State<UpdateDetails> {
         print('key: $key  mapValues: ${updatedValue.toString()}');
 
         // Update the document in Firestore with the updatedValue
-        DocumentReference studentDetailsRef = FirebaseFirestore.instance.doc('/KLU/STAFFDETAILS/LECTURERS/$key');
-        print('studentDocumentReference: ${studentDetailsRef.path}');
-        await firebaseService.uploadMapDetailsToDoc(studentDetailsRef, updatedValue,staffID!);
+        DocumentReference staffDetailsRef = FirebaseFirestore.instance.doc('/KLU/STAFFDETAILS/LECTURERS/$key');
+        print('LecturerDocumentReference: ${staffDetailsRef.path}');
+        await firebaseService.uploadMapDetailsToDoc(staffDetailsRef, updatedValue,staffID!);
       }
 
     } catch (e) {

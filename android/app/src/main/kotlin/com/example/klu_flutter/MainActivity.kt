@@ -1,4 +1,4 @@
-package com.example.klu_flutter
+package com.neelam.myUniv;
 
 import io.flutter.embedding.android.FlutterActivity
 

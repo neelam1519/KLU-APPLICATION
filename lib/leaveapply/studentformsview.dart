@@ -77,7 +77,7 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
             ),
           );
         },
-        child: Icon(Icons.add),
+        child: Icon(Icons.add, color: Colors.red),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
