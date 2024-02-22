@@ -8,8 +8,7 @@
 
     <application
         android:name="${applicationName}"
-        android:label="MyUniv"
-        android:icon="@mipmap/launcher_icon">
+        android:label="MyUniv">
 
         <!-- Firebase Analytics initialization -->
         <meta-data

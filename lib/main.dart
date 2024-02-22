@@ -11,8 +11,10 @@ import 'package:klu_flutter/provider.dart';
 import 'package:klu_flutter/security/EncryptionService.dart';
 import 'package:klu_flutter/services/pushnotificationservice.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
+import 'package:klu_flutter/utils/readers.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
+import 'package:path/path.dart';
 import 'package:provider/provider.dart';
 import 'package:sign_in_button/sign_in_button.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -202,6 +204,7 @@ class MyHomePage extends StatelessWidget {
           String userId = user.uid;
           String regNo=utils.removeDomainFromEmail(email);
           String year=utils.getYearFromRegNo(regNo);
+          String branch=utils.getBranchFromRegNo(regNo);
           String? imageUrl=user.photoURL;
 
           Map<String,String> data={};
@@ -209,6 +212,7 @@ class MyHomePage extends StatelessWidget {
           FirebaseService firebaseService = FirebaseService();
           SharedPreferences sharedPreferences=SharedPreferences();
           EncryptionService encryptionService=EncryptionService();
+          Reader reader=Reader();
 
           await utils.getImageBytesFromUrl(imageUrl);
 
@@ -220,7 +224,65 @@ class MyHomePage extends StatelessWidget {
 
           if(lecturerOrStudent == 'STUDENT'){
 
+            try {
+              String studentPathFileName = Uri.encodeComponent('$year/$branch/$year $branch STUDENT DETAILS');
+              Map<String, String> data = {'REGISTRATION NUMBER': regNo};
 
+              Map<String, dynamic> studentFileDetails = await reader.downloadedDetail(studentPathFileName, '$year $branch STUDENT DETAILS', data);
+
+              if (studentFileDetails.isEmpty) {
+                signOutUser();
+                utils.showToastMessage('STUDENT DETAILS NOT FOUND', context);
+              }
+
+              String faPathFileName = Uri.encodeComponent('$year/$branch/$year $branch FA DETAILS');
+              data.clear();
+              data = {'SECTION': studentFileDetails['SECTION']};
+              Map<String, dynamic> faDetails = await reader.downloadedDetail(faPathFileName, '$year $branch FA DETAILS', data);
+
+              if (faDetails.isEmpty) {
+                signOutUser();
+                utils.showToastMessage(
+                    'FACULTY ADVISOR DETAILS NOT FOUND', context);
+              }
+
+              String adminPathFileName = Uri.encodeComponent('$year/$branch/$year $branch ADMIN DETAILS');
+              data.clear();
+              data = {
+                'BRANCH': faDetails['BRANCH'],
+                'YEAR COORDINATOR STREAM': faDetails['FACULTY ADVISOR STREAM'],
+                'YEAR COORDINATOR YEAR': faDetails['FACULTY ADVISOR YEAR']
+              };
+              Map<String, dynamic> adminDetails = await reader.downloadedDetail(adminPathFileName, '$year $branch ADMIN DETAILS', data);
+
+              if (adminDetails.isEmpty) {
+                signOutUser();
+                utils.showToastMessage('YEAR COORDINATOR DETAILS NOT FOUND', context);
+              }
+
+              Map<String, dynamic> studentTotalDetails = {};
+
+              DocumentReference documentReference = FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
+              print('Total Student Details: ${studentTotalDetails.toString()}');
+
+              await sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', 'STUDENT');
+              await sharedPreferences.storeValueInSecurePrefs('REGISTRATION NUMBER', regNo);
+
+
+              studentTotalDetails.addAll({'PRIVILEGE':'STUDENT','UID':userId,'FCMTOKEN':fcmToken,'EMAIL ID':email,'STREAM':faDetails['FACULTY ADVISOR STREAM'],'BRANCH':faDetails['BRANCH'],
+              'NAME':studentFileDetails['NAME'],'SECTION':studentFileDetails['SECTION'],'YEAR':year,'SLOT':faDetails['SLOT'],'REGISTRATION NUMBER':regNo,'FACULTY ADVISOR NAME':faDetails['NAME'],
+              'FACULTY ADVISOR STAFF ID':faDetails['STAFF ID'],'YEAR COORDINATOR NAME':adminDetails['NAME'],'YEAR COORDINATOR STAFF ID':adminDetails['STAFF ID']});
+              await firebaseService.uploadMapDetailsToDoc(documentReference, studentTotalDetails, regNo);
+
+              EasyLoading.dismiss();
+
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => Home()));
+
+            }catch(e){
+              signOutUser();
+              utils.showToastMessage('ERROR OCCURED WHILE UPLODING THE DATA', context);
+            }
 
           }else if(lecturerOrStudent=='STAFF') {
             List<String> positions = ['LECTURERS', 'WARDENS'];
@@ -263,20 +325,11 @@ class MyHomePage extends StatelessWidget {
               }
 
               if (!emailFound) {
-                EasyLoading.dismiss();
-                GoogleSignIn().disconnect();
-                FirebaseAuth.instance.signOut();
-                utils.showToastMessage('YOUR DETAILS NOT FOUND', context);
-                return;
+                signOutUser();
               }
             } catch (e) {
               // Handle exceptions, log them, or show an error message to the user
-              print('Error occurred: $e');
-              EasyLoading.dismiss();
-              GoogleSignIn().disconnect();
-              FirebaseAuth.instance.signOut();
-              utils.showToastMessage('Details not found', context);
-              return;
+              signOutUser();
             }
 
           }
@@ -296,4 +349,12 @@ class MyHomePage extends StatelessWidget {
       return;
     }
   }
+
+  void signOutUser(){
+    EasyLoading.dismiss();
+    GoogleSignIn().disconnect();
+    FirebaseAuth.instance.signOut();
+    return;
+  }
+
 }

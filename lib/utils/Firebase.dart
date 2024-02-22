@@ -19,7 +19,7 @@ class FirebaseService {
   Future<void> uploadMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data, String ID) async {
     try {
 
-      print('Convert Encrypted Data: ${data.toString()}');
+      print('Uploading Data: ${data.toString()}');
       await documentReference.set({
         ...data, // Include the document data
         'verificationID': ID, // Additional metadata

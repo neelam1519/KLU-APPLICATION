@@ -13,7 +13,7 @@ class Reader{
 
   Future<Map<String, String>> downloadedDetail(String encodedPath, String filename, Map<String, String> data) async {
 
-    String fileUrl = 'https://firebasestorage.googleapis.com/v0/b/klu_details/o/$encodedPath.xlsx?alt=media';
+    String fileUrl = 'https://firebasestorage.googleapis.com/v0/b/myuniv-ed957.appspot.com/o/$encodedPath.xlsx?alt=media';
     print("downloadedDetail: ${fileUrl.toString()}");
 
     String filePath = await storage.downloadFileInCache(fileUrl, '$filename.xlsx');
@@ -21,9 +21,6 @@ class Reader{
 
     // Remove white spaces in map values and keys
     details = details.map((key, value) => MapEntry(key.trim(), value.trim()));
-
-    print('downloadedDetail: ${details.toString()}');
-
     return details;
   }
 
@@ -31,6 +28,7 @@ class Reader{
     var file = File(filePath);
     var bytes = await file.readAsBytes();
     var excel = Excel.decodeBytes(bytes);
+
 
     // Assume the data is in the first sheet
     var sheet = excel.tables.keys.first;
@@ -102,10 +100,6 @@ class Reader{
         print('Max Columns: ${excel.tables[table]?.maxColumns ?? 0}');
         print('Max Rows: ${excel.tables[table]?.maxRows ?? 0}');
 
-        RegExp digitRegex = RegExp(r'\.([1-9]+)');
-        RegExp zeroRegex = RegExp(r'\.(0+)');
-        RegExp alphabetRegex = RegExp(r'\.([A-Za-z]+)');
-
         if (excel.tables[table]?.rows != null) {
           var headers = excel.tables[table]!.rows.first;
 
@@ -117,107 +111,94 @@ class Reader{
 
           print('headerNames: $headerNames');
 
-        List<int> indexes = [];
-
+          List<int> indexes = [];
           for (MapEntry<String, String> header in headerAndValues.entries) {
             String key = header.key.trim();
-            String values = header.value.trim();
+            String value = header.value.trim();
 
-            var allIndexes = <int>[];
-            var columnIndex = headers.indexWhere((header) => header!.value.toString() == key);
+            var columnIndex = headerNames.indexOf(key);
+            print('columnIndex: ${columnIndex.toString()}');
 
             if (columnIndex != -1) {
-              var columnValues = excel.tables[table]!.rows.skip(1).map((row) => row[columnIndex]!.value).toList();
-              for (var i = 0; i < columnValues.length; i++) {
+              List<List<String>> columnValues = excel.tables[table]!.rows.skip(1)
+                  .map((row) => removeDot(row[columnIndex]!.value).split(',')) // Apply removeDot function and split by comma
+                  .toList();
 
-              var columnValue = columnValues[i];
-              List<String> listStringValue=columnValue.toString().split(',');
+              List<int> tempList = [];
 
-              for(String stringValue in listStringValue) {
-                // Remove the decimal part if it's a double
-                if (columnValue is double || columnValue is DoubleCellValue) {
-                  stringValue = columnValue
-                      .toString()
-                      .split('.')
-                      .last;
+              // Iterate through each list of strings in columnValues
+              for (int rowIndex = 0; rowIndex < columnValues.length; rowIndex++) {
+                List<String> listString = columnValues[rowIndex];
 
-                  var digitMatch = digitRegex.firstMatch(
-                      columnValue.toString());
-                  var zeroMatch = zeroRegex.firstMatch(columnValue.toString());
-                  var alphabetMatch = alphabetRegex.firstMatch(
-                      columnValue.toString());
+                // Iterate through each string in the current list
+                for (int stringIndex = 0; stringIndex < listString.length; stringIndex++) {
+                  String stringValue = listString[stringIndex];
 
-                  if (digitMatch != null) {
-                    // There are digits [1-9] after the decimal point
-                    stringValue = columnValue.toString();
-                  } else if (zeroMatch != null) {
-                    // There are zeros 0 after the decimal point
-                    stringValue = columnValue
-                        .toString()
-                        .split('.')
-                        .first;
-                  } else if (alphabetMatch != null) {
-                    stringValue = columnValue.toString();
+                  // Print the current string value for debugging
+                  print('stringValue: $stringValue');
+
+                  // Check if the current string value is a Roman numeral
+                  if (utils.isRomanNumeral(stringValue)) {
+                    // Convert Roman numeral to integer
+                    int romanValue = utils.romanToInteger(stringValue);
+
+                    // Print the converted integer value for debugging
+                    print('romanValue: $romanValue');
+
+                    // Compare the converted integer value with the specified value
+                    if (romanValue.toString() == value) {
+                      // If they match, add the rowIndex to tempList
+                      tempList.add(rowIndex);
+                    }
                   } else {
-                    // There are no digits [1-9], zeros 0, or alphabets [A-Za-z] after the decimal point
-                    stringValue = columnValue.toString();
+                    // If not a Roman numeral, compare the string value directly
+                    if (stringValue == value) {
+                      // If they match, add the rowIndex to tempList
+                      tempList.add(rowIndex);
+                    }
                   }
                 }
-                if (stringValue == values) {
-                  allIndexes.add(i);
-                }
               }
-              }
-              print('allIndexes: ${allIndexes.toString()}');
-              if (indexes.isEmpty) {
-                indexes.addAll(allIndexes);
-              } else {
-                indexes = indexes.where((element) => allIndexes.contains(element)).toList();
-                print('indexLength: ${indexes.toString()}');
-              }
+
+              // Print the tempList for debugging
+              print('tempList: $tempList');
+
+              // Update the indexes list
+              indexes = updateIndexList(tempList, indexes);
             } else {
               print('Column "$key" not found.');
             }
-            print('indexLength: ${indexes.length}');
           }
 
+
+          print('Indexes: ${indexes}');
           if (indexes.length == 1) {
-            //var targetRowValuesMap = Map<String, String>();
-            Map<String,String> targetRowValuesMap={};
+            Map<String, String> targetRowValuesMap = {};
             var rowsList = excel.tables[table]!.rows.toList();
-            var row = rowsList.elementAt(indexes[0] + 1);
 
-            for (var i = 0; i < headers.length; i++) {
-              var columnValue = row[i]!.value;
+            // Get the row index from the indexes list
+            int rowIndex = indexes[0] + 1; // Adding 1 to skip the header row
 
-              // Remove the decimal part if it's a double
-              if (columnValue is double || columnValue is DoubleCellValue) {
-                var stringValue = columnValue.toString();
-                var decimalIndex = stringValue.indexOf('.');
+            // Check if the rowIndex is within the bounds of the rowsList
+            if (rowIndex >= 0 && rowIndex < rowsList.length) {
+              var row = rowsList[rowIndex];
 
-                if (decimalIndex != -1) {
-                  // Check if there are any digits after the decimal point
-                  print('decimal value: ');
-                  if (stringValue.substring(decimalIndex + 1).contains(RegExp(r'[1-9]'))) {
-                    // There are digits [1-9] after the decimal point
-                    stringValue = stringValue;
-                  } else {
-                    // There are no digits [1-9] after the decimal point
-                    stringValue = stringValue.split('.').first;
-                  }
-                }
+              // Iterate through the header names and corresponding values in the row
+              for (int i = 0; i < headerNames.length; i++) {
+                String headerName = headerNames[i];
+                String cellValue = removeDot(row[i]?.value ?? '').toString();
 
-                targetRowValuesMap[headerNames[i]] = stringValue;
-              } else {
-                targetRowValuesMap[headerNames[i]] = columnValue.toString();
+                // Add the header name and cell value to the targetRowValuesMap
+                targetRowValuesMap[headerName] = cellValue;
               }
+              targetRowValuesMap=updateTargetRowValues(targetRowValuesMap);
+              print('Target Row Values Map: $targetRowValuesMap');
+              return targetRowValuesMap;
+            } else {
+              print('Row index is out of bounds.');
+              return {}; // Return an empty map if the row index is out of bounds
             }
-
-
-            print('Target Row Values Map: ${targetRowValuesMap.toString()}');
-
-            return targetRowValuesMap;
-          } else if (indexes.isEmpty) {
+          }else if (indexes.isEmpty) {
             print('None of the specified values found in the columns.');
           } else {
             print('Multiple indexes found for the specified values.');
@@ -232,4 +213,80 @@ class Reader{
     return {};
   }
 
+  Map<String, String> updateTargetRowValues(Map<String, String> targetRowValuesMap) {
+    Map<String, String> updatedMap = {}; // Create a new map to store the updated values
+
+    // Iterate through the map entries
+    targetRowValuesMap.forEach((key, value) {
+      // Split the value string by comma
+      List<String> splitValues = value.split(',');
+
+      // Convert Roman numerals to integers and update the split values if needed
+      for (int i = 0; i < splitValues.length; i++) {
+        if (utils.isRomanNumeral(splitValues[i])) {
+          // If the split value is a Roman numeral, convert it to an integer
+          int romanValue = utils.romanToInteger(splitValues[i]);
+
+          // Update the split value with the converted integer
+          splitValues[i] = romanValue.toString();
+        }
+      }
+
+      // Join the split values back into a single string
+      String updatedValue = splitValues.join(',');
+
+      // Update the updatedMap with the modified value
+      updatedMap[key] = updatedValue;
+    });
+
+    return updatedMap; // Return the updated map
+  }
+
+
+  List<int> updateIndexList(List<int> temp, List<int> index) {
+    if (index.isEmpty) {
+      // If the index list is empty, add all elements of the temp list to it
+      index.addAll(temp);
+    } else {
+      // Create a copy of the index list to avoid modifying it while iterating
+      List<int> indexCopy = List.from(index);
+
+      // Iterate through the index list
+      for (int i = 0; i < indexCopy.length; i++) {
+        // Check if the element at the current index is not present in the temp list
+        if (!temp.contains(indexCopy[i])) {
+          // If not present, remove it from the index list
+          index.remove(indexCopy[i]);
+        }
+      }
+    }
+
+    // Return the updated index list
+    return index;
+  }
+
+
+  String removeDot(dynamic value) {
+    if (value is double || value is DoubleCellValue) {
+      var stringValue = value.toString();
+      var decimalIndex = stringValue.indexOf('.');
+
+      // Check if the value contains a decimal point
+      if (decimalIndex != -1) {
+        // Check if there are any non-zero digits after the decimal point
+        if (stringValue.substring(decimalIndex + 1).contains(RegExp(r'[1-9]'))) {
+          // There are non-zero digits after the decimal point, keep the decimal part
+          stringValue = stringValue;
+        } else {
+          // There are no non-zero digits after the decimal point, remove the decimal point and trailing zeros
+          stringValue = stringValue.split('.')[0];
+        }
+      }
+      return stringValue;
+    }
+
+    // Return the value as is if it's not a double
+    return value.toString();
+  }
+  
 }

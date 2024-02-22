@@ -53,23 +53,6 @@ class _HomeState extends State<Home> {
 
   Future<void> initializeData()async{
 
-    // FirebaseAuth firebaseAuth=FirebaseAuth.instance;
-    // User? user=firebaseAuth.currentUser;
-    // if (user != null) {
-    //   // Access the user's email
-    //   email = user.email!;
-    //   print('Current user\'s email: $email');
-    // } else {
-    //   print('No user is currently logged in.');
-    // }
-    //
-    // print('KmsKey: ${await encryptionService.getKmsKey()}');
-    //
-    // print('uniqueKey: ${encryptionService.generateKeyFromUid(email!).base64}');
-    //
-    // String key=encryptionService.generateKeyFromUid(email!).base64;
-    // encryptionService.encryptData(email!,key);
-
     privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE') ?? '';
 
     if(await utils.checkInternetConnectivity()){
@@ -337,6 +320,7 @@ class _HomeState extends State<Home> {
           break;
         default:
           print('Unknown privilege: $privilege');
+          EasyLoading.dismiss();
           return;
       }
 

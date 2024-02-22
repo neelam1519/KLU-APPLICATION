@@ -65,20 +65,6 @@ class _UpdateDetailsState extends State<UpdateDetails> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '$year $branch STUDENTS LIST', // Set the year and branch name
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          _pickFile('$year $branch STUDENTS LIST'); // Pass year and branch information to _pickFile
-                        },
-                        child: Text('Upload Files'),
-                      ),
                       SizedBox(height: 20), // Add spacing between sections
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -187,72 +173,6 @@ class _UpdateDetailsState extends State<UpdateDetails> {
         print('Admins file does not exist.');
         return;
       }
-
-      List<String> studentRegNo = await reader.getColumnValues(studentFilePath, 'REGISTRATION NUMBER');
-      print('Students RegNo List: ${studentRegNo.toString()}');
-
-      studentRegNo.forEach((regNo) async {
-        Map<String, String> studentDetails = await reader.readExcelFile(studentFilePath, {'REGISTRATION NUMBER': regNo.trim()});
-        print('StudentDetails: ${studentDetails.toString()} ');
-
-        if (studentDetails == null || studentDetails.isEmpty) {
-          print('No details found for student with registration number: $regNo');
-          return;
-        }
-
-        Map<String, String> faDetails = await reader.readExcelFile(faFilePath, {'SECTION': studentDetails['SECTION']!});
-        print('studentFaDetails: ${faDetails.toString()} ');
-
-        if (faDetails.isEmpty) {
-          print('No FA details found for student with registration number: $regNo');
-          return;
-        }
-
-        Map<String, String> adminDetails = await reader.readExcelFile(adminsFilePath, {
-          'BRANCH': faDetails['BRANCH']!,
-          'YEAR COORDINATOR STREAM': faDetails['FACULTY ADVISOR STREAM']!,
-          'YEAR COORDINATOR YEAR': faDetails['FACULTY ADVISOR YEAR']!
-        });
-        print('studentAdminDetails: ${adminDetails.toString()} ');
-
-        if (adminDetails.isEmpty) {
-          print('No admin details found for student with registration number: $regNo');
-          return;
-        }
-
-        Map<String, String> studentTotalDetails = {};
-
-        studentTotalDetails.addAll(studentDetails);
-        studentTotalDetails.addAll({
-          'PRIVILEGE': 'STUDENT',
-          'SLOT': faDetails['SLOT'] ?? '',
-          'YEAR': faDetails['FACULTY ADVISOR YEAR'] ?? '',
-          'SECTION': faDetails['SECTION'] ?? '',
-          'BRANCH': faDetails['BRANCH'] ?? '',
-          'STREAM': faDetails['FACULTY ADVISOR STREAM'] ?? '',
-          'FACULTY ADVISOR NAME': faDetails['NAME'] ?? '',
-          'FACULTY ADVISOR STAFF ID': faDetails['STAFF ID'] ?? '',
-          'YEAR COORDINATOR STAFF ID': adminDetails['STAFF ID'] ?? '',
-          'YEAR COORDINATOR NAME': adminDetails['NAME'] ?? ''
-        });
-
-        for (MapEntry<String, String> entry in studentTotalDetails.entries) {
-          String key = entry.key;
-          String value = entry.value;
-
-          if (utils.isRomanNumeral(value)) {
-            int roman = utils.romanToInteger(value);
-            studentTotalDetails[key] = roman.toString();
-          }
-        }
-
-        // Create Firestore document reference
-        DocumentReference studentDetailsRef = FirebaseFirestore.instance.doc('/KLU/STUDENTDETAILS/${studentTotalDetails['YEAR']}/${studentTotalDetails['REGISTRATION NUMBER']}');
-        print('studentDocumentReference: ${studentDetailsRef.path}');
-
-        // Upload student details to Firestore
-        await firebaseService.uploadMapDetailsToDoc(studentDetailsRef, studentTotalDetails, regNo);
-      });
 
 
       Map<String,Map<String, String>> faTotalDetails={};
