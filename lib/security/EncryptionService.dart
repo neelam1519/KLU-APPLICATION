@@ -18,20 +18,55 @@ class EncryptionService {
     return encrypt.Key(Uint8List.fromList(hashBytes)); // Convert hash bytes to Uint8List and return as the key
   }
 
-  Future<Encrypted> encryptData(Key key,String text) async {
-    final aes = Encrypter(AES(key));
+  Future<Map<String, dynamic>> encryptData(String keyString, Map<String, dynamic> data) async {
+    final key = generateKey(keyString);
+    final iv = IV.fromLength(16); // IV is usually 16 bytes for AES
 
-    final encrypted = aes.encrypt(text, iv: iv);
-    print('Encrypted Data: ${encrypted.base64}');
-    return encrypted;
+    final encrypter = Encrypter(AES(key));
+
+    // List of keys to exclude from encryption
+    final keysToExclude = ['FCMTOKEN', 'UID'];
+
+    // Encrypt the values of the map, excluding specific keys
+    Map<String, dynamic> encryptedData = {};
+    data.forEach((key, value) {
+      if (!keysToExclude.contains(key)) {
+        final jsonString = json.encode(value);
+        final encryptedValue = encrypter.encrypt(jsonString, iv: iv);
+        encryptedData[key] = encryptedValue.base64;
+      } else {
+        // Keep values of excluded keys as they are
+        encryptedData[key] = value;
+      }
+    });
+
+    print('Encrypted Data: $encryptedData');
+
+    return encryptedData;
   }
 
-  Future<String> decryptData(Key key, Encrypted encryptedData) async {
-    final aes = Encrypter(AES(key)); // Use the generated key for decryption
+  Future<Map<String, dynamic>> decryptData(String string, Map<String, dynamic> encryptedData) async {
+    final aes = Encrypter(AES(generateKey(string))); // Use the generated key for decryption
 
-    final decrypted = aes.decrypt(encryptedData, iv: iv);
-    print('Decrypted Data: $decrypted');
-    return decrypted;
+    // List of keys to exclude from decryption
+    final keysToExclude = ['FCMTOKEN', 'UID'];
+
+    // Decrypt the values of the map, excluding specific keys
+    Map<String, dynamic> decryptedData = {};
+    encryptedData.forEach((key, value) {
+      if (!keysToExclude.contains(key)) {
+        final encryptedValue = Encrypted(value);
+        final decryptedValue = aes.decrypt(encryptedValue);
+        final decodedValue = json.decode(decryptedValue);
+        decryptedData[key] = decodedValue;
+      } else {
+        // Keep values of excluded keys as they are
+        decryptedData[key] = value;
+      }
+    });
+
+    print('Decrypted Data: $decryptedData');
+    return decryptedData;
   }
 
   Future<String> getKmsKey() async {

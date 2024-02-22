@@ -15,26 +15,9 @@ class FirebaseService {
   FirebaseFirestore firestore = FirebaseFirestore.instance;
   late Key key;
 
-  Future<void> getKey() async{
-    FirebaseAuth firebaseAuth=FirebaseAuth.instance;
-    String email='';
-    String name='';
-    User? user=firebaseAuth.currentUser;
-    if (user != null) {
-      // Access the user's email
-      email = user.email!;
-      print('Current user\'s email: $email');
-    } else {
-      print('No user is currently logged in.');
-    }
-
-    name=utils.removeDomainFromEmail(email);
-    key=encryptionService.generateKey('$email+$name');
-  }
 
   Future<void> uploadMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data, String ID) async {
     try {
-      await getKey();
 
       print('Convert Encrypted Data: ${data.toString()}');
       await documentReference.set({
@@ -115,26 +98,6 @@ class FirebaseService {
       }
     }
 
-  Future<void> deleteFieldInCollection(CollectionReference collectionReference, String field) async {
-    try {
-      // Get all documents in the collection
-      QuerySnapshot querySnapshot = await collectionReference.get();
-
-      for (QueryDocumentSnapshot documentSnapshot in querySnapshot.docs) {
-        // Delete the specified field in each document
-        await documentSnapshot.reference.update({
-          field: FieldValue.delete(),
-        });
-
-        print('Field $field deleted successfully in document ${documentSnapshot.id}');
-      }
-
-      print('Field $field deleted in all documents in the collection.');
-    } catch (e) {
-      print('Error deleting field: $e');
-    }
-  }
-
   Future<Map<String, dynamic>?> getValuesFromDocRef(DocumentReference documentReference, List<String> requiredFieldNames) async {
     try {
       // Get the document snapshot
@@ -175,6 +138,26 @@ class FirebaseService {
     }
   }
 
+  Future<void> deleteFieldInCollection(CollectionReference collectionReference, String field) async {
+    try {
+      // Get all documents in the collection
+      QuerySnapshot querySnapshot = await collectionReference.get();
+
+      for (QueryDocumentSnapshot documentSnapshot in querySnapshot.docs) {
+        // Delete the specified field in each document
+        await documentSnapshot.reference.update({
+          field: FieldValue.delete(),
+        });
+
+        print('Field $field deleted successfully in document ${documentSnapshot.id}');
+      }
+
+      print('Field $field deleted in all documents in the collection.');
+    } catch (e) {
+      print('Error deleting field: $e');
+    }
+  }
+
   Future<bool> isDocumentExists(CollectionReference collectionReference, String documentName) async {
     try {
       DocumentSnapshot documentSnapshot = await collectionReference.doc(documentName).get();
@@ -193,34 +176,6 @@ class FirebaseService {
       print('Document deleted successfully');
     } catch (e) {
       print('Error deleting document: $e');
-    }
-  }
-
-  Future<String> getSpecificFieldValue(DocumentReference documentReference, String field) async {
-    try {
-      // Get the document snapshot
-      DocumentSnapshot snapshot = await documentReference.get();
-
-      // Check if the document exists
-      if (snapshot.exists) {
-        // Replace "your_field" with the actual field name
-        dynamic fieldValue = snapshot.get(field);
-
-        // Check if the field value is null
-        if (fieldValue == null) {
-          // Return an empty string if the field value is null
-          return '';
-        } else {
-          // Return the field value as a string
-          return fieldValue.toString();
-        }
-      } else {
-        print("Document does not exist");
-        return ''; // or throw an exception, depending on your use case
-      }
-    } catch (e) {
-      print("Error getting document: $e");
-      return ''; // or throw an exception, depending on your use case
     }
   }
 }

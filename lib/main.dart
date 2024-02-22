@@ -126,8 +126,8 @@ class MyHomePage extends StatelessWidget {
             children: [
               Image.asset(
                 'assets/images/signinimage.png', // Replace 'your_image.png' with your actual image asset path
-                width: 250.0, // Adjust width as needed
-                height: 250.0, // Adjust height as needed
+                width: 400, // Adjust width as needed
+                height: 400, // Adjust height as needed
               ),
               SizedBox(height: 0), // Add spacing below the image
               Text(
@@ -216,10 +216,7 @@ class MyHomePage extends StatelessWidget {
 
           DocumentReference detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS');
 
-          //lecturerOrStudent='STAFF';
-
-          encrypt.Key key=await encryptionService.generateKey('$email');
-          print('GeneratedKey: ${key.base64}');
+          lecturerOrStudent='STAFF';
 
           if(lecturerOrStudent == 'STUDENT'){
             detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
@@ -234,7 +231,6 @@ class MyHomePage extends StatelessWidget {
                 sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', 'STUDENT');
                 sharedPreferences.storeValueInSecurePrefs('REGISTRATION NUMBER', regNo);
                 sharedPreferences.storeValueInSecurePrefs('EMAIL ID', email);
-                sharedPreferences.storeValueInSecurePrefs('PRIVATE KEY', key);
 
                 print('Data: ${data.toString()}');
 
@@ -277,9 +273,10 @@ class MyHomePage extends StatelessWidget {
                 for (String document in documents) {
                   detailsRef = collectionReference.doc(document);
                   print("DocRef: ${detailsRef.path}");
-                  String value = await firebaseService.getSpecificFieldValue(detailsRef, 'EMAIL ID');
+                  List<String> getData=['EMAIL ID'];
+                  Map<String, dynamic>? value = await firebaseService.getValuesFromDocRef(detailsRef, getData);
 
-                  if (value == email) {
+                  if (value!['EMAIL ID'] == email) {
                     emailFound = true;
                     print('STAFF ID: $document');
                     sharedPreferences.storeValueInSecurePrefs('STAFF ID', document);
