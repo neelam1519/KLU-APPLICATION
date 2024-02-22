@@ -216,48 +216,11 @@ class MyHomePage extends StatelessWidget {
 
           DocumentReference detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS');
 
-          lecturerOrStudent='STAFF';
+          //lecturerOrStudent='STAFF';
 
           if(lecturerOrStudent == 'STUDENT'){
-            detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
 
-            detailsRef.get().then((DocumentSnapshot snapshot) async {
-              if (snapshot.exists) {
-                print('Document exists! :${detailsRef.path}');
 
-                data.addAll({'UID': userId, 'FCMTOKEN': fcmToken!});
-                await firebaseService.uploadMapDetailsToDoc(detailsRef, data,regNo);
-
-                sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', 'STUDENT');
-                sharedPreferences.storeValueInSecurePrefs('REGISTRATION NUMBER', regNo);
-                sharedPreferences.storeValueInSecurePrefs('EMAIL ID', email);
-
-                print('Data: ${data.toString()}');
-
-                utils.showToastMessage('SUCCESSFULLY LOGGED IN $regNo', context);
-
-                EasyLoading.dismiss();
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => Home()));
-                // Do something if the document exists
-              } else {
-                utils.showToastMessage('$regNo DETAILS NOT FOUND CONTACT FACULTY ADVISOR', context);
-                print('Document does not exist.');
-                EasyLoading.dismiss();
-                GoogleSignIn().disconnect();
-                FirebaseAuth.instance.signOut();
-                return;
-                // Do something if the document does not exist
-              }
-            }).catchError((error) {
-              utils.showToastMessage('ERROR WHILE CHECKING THE $regNo DETAILS TRY AFTER SOME TIME', context);
-              print('Error checking document existence: $error');
-              EasyLoading.dismiss();
-              GoogleSignIn().disconnect();
-              FirebaseAuth.instance.signOut();
-              return;
-              // Handle any errors that occur while checking document existence
-            });
 
           }else if(lecturerOrStudent=='STAFF') {
             List<String> positions = ['LECTURERS', 'WARDENS'];

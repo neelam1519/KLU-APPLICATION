@@ -287,7 +287,6 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       EasyLoading.dismiss();
     } catch (e) {
       // Handle errors
-      LoadingDialog.stopLoadingDialog(context);
       utils.showToastMessage('Error occurred, please try again later', context);
       print('Error onReject: $e');
       utils.exceptions(e, 'onReject');
