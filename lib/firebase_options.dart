@@ -60,12 +60,12 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDuVhDugZfNThYRsntJDE6HkzYI5jMKRMU',
-    appId: '1:1092181859695:ios:13e3f9c89b7212613f5c9a',
+    appId: '1:1092181859695:ios:1b5e9e1f6b0c85603f5c9a',
     messagingSenderId: '1092181859695',
     projectId: 'myuniv-ed957',
     databaseURL: 'https://myuniv-ed957-default-rtdb.firebaseio.com',
     storageBucket: 'myuniv-ed957.appspot.com',
-    androidClientId: '1092181859695-qd024n5qpqt20da7pcb0t4jfdfc1oe2e.apps.googleusercontent.com',
+    androidClientId: '1092181859695-3mhoq222l4u3lsnrpgkv197lhsq13926.apps.googleusercontent.com',
     iosClientId: '1092181859695-o9662nv4epem3qj6ptfjdbo3l7qclpcp.apps.googleusercontent.com',
     iosBundleId: 'com.example.kluFlutter',
   );

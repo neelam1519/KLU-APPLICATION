@@ -15,6 +15,30 @@
       },
       "oauth_client": [
         {
+          "client_id": "1092181859695-3mhoq222l4u3lsnrpgkv197lhsq13926.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neelam.myUniv",
+            "certificate_hash": "16e67361f93add5632b778b0bd8b744dc642b67c"
+          }
+        },
+        {
+          "client_id": "1092181859695-nbrtc5902keuqu6p2gphfc1vftevd196.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neelam.myUniv",
+            "certificate_hash": "1821d6dfe4dc6df242360e1d5ecf05bab928d41c"
+          }
+        },
+        {
+          "client_id": "1092181859695-nll24395dsmcosi2uacfni6nu8g43uri.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neelam.myUniv",
+            "certificate_hash": "d8b5cf0a0abb0b0f1e1330a73c9b11481fb09cc2"
+          }
+        },
+        {
           "client_id": "1092181859695-qd024n5qpqt20da7pcb0t4jfdfc1oe2e.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
@@ -40,10 +64,10 @@
               "client_type": 3
             },
             {
-              "client_id": "1092181859695-o9662nv4epem3qj6ptfjdbo3l7qclpcp.apps.googleusercontent.com",
+              "client_id": "1092181859695-i58kbe9ie589sukd7r5vcaq9i2c539nm.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.example.kluFlutter"
+                "bundle_id": "com.neelam.myUniv"
               }
             }
           ]
