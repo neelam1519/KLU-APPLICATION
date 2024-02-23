@@ -220,7 +220,7 @@ class MyHomePage extends StatelessWidget {
 
           DocumentReference detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS');
 
-          //lecturerOrStudent='STAFF';
+          lecturerOrStudent='STAFF';
 
           if(lecturerOrStudent == 'STUDENT'){
 
