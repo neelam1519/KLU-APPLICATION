@@ -120,7 +120,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
                           icon: Icon(Icons.close, color: Colors.red), // Change color to red
                           onPressed: () {
                             // Handle reject button press
-                            showRejectionDialog(context);
+                            onReject();
                           },
                         ),
                         Text('Reject'), // Text for the reject button
@@ -221,7 +221,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
     }
   }
 
-  Future<void> onReject(String reason, BuildContext rejContext) async {
+  Future<void> onReject() async {
     print('onReject: ');
     try {
       utils.showDefaultLoading();
@@ -256,11 +256,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
           '/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/PENDING'
       );
 
-      Map<String, dynamic> data = {
-        field: 'REJECTED',
-        'VERIFICATION STATUS': 'REJECTED',
-        'REASON FOR REJECTION': reason
-      };
+      Map<String, dynamic> data={};
 
       print('Getting document reference field value...');
       List<String> listData=[widget.leaveid];
@@ -276,16 +272,19 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       await firebaseService.deleteField(
           collectionReference.doc('PENDING'), widget.leaveid
       );
-
+      data.clear();
+      data = {
+        field: 'REJECTED',
+        'VERIFICATION STATUS': 'REJECTED',
+      };
       print('Uploading map details to doc...');
       await firebaseService.uploadMapDetailsToDoc(
           value!.collection('LEAVEFORMS').doc(widget.leaveid), data, staffID!
       );
-
-      // Stop the loading dialog before navigating back
       Navigator.pop(context);
+      // Stop the loading dialog before navigating back
       EasyLoading.dismiss();
-    } catch (e) {
+    }catch (e) {
       // Handle errors
       utils.showToastMessage('Error occurred, please try again later', context);
       print('Error onReject: $e');
@@ -294,7 +293,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
     }
   }
 
-  void showRejectionDialog(BuildContext context) {
+  void showRejectionDialog() {
     String rejectionReason = '';
 
     showDialog(
@@ -331,7 +330,8 @@ class _LeaveDataState extends State<LeaveDetailsView> {
                   utils.showToastMessage('Reason should not be null', context);
                 } else {
                   Navigator.of(context).pop(); // Close dialog
-                  onReject(rejectionReason, context);
+                  //onReject(rejectionReason);
+
                 }
               },
               child: Text('Submit'),
