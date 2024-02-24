@@ -32,10 +32,10 @@ class _HomeState extends State<Home> {
   SharedPreferences sharedPreferences = SharedPreferences();
   final FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
   FirebaseFirestore firebaseFirestore=FirebaseFirestore.instance;
-  //EncryptionService encryptionService=EncryptionService();
+  EncryptionService encryptionService=EncryptionService();
   Utils utils=Utils();
 
-  String? name,email,privilege,fcmToken,year,regNo;
+  String? name,email,privilege,fcmToken,year,regNo,staffID,branch;
   Uint8List? imageBytes;
   late encrypt.Key key;
   late String userKey;
@@ -56,9 +56,9 @@ class _HomeState extends State<Home> {
     privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE') ?? '';
 
     if(await utils.checkInternetConnectivity()){
-      getDetails();
       requestNotificationPermissions();
-      storeFcmToken();
+      getDetails().then((value) => storeFcmToken());
+
     }else{
       utils.showToastMessage('Check your internet connection', context);
       EasyLoading.dismiss();
@@ -207,10 +207,11 @@ class _HomeState extends State<Home> {
         year = await utils.getYearFromRegNo(regNo!);
 
         detailsRef = FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
-      } else if(privilege == 'LECTURERS' || privilege == 'YEAR COORDINATOR' || privilege == 'LECTURERS' || privilege=='HOD' || privilege=='FACULTY ADVISOR' || privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
-        String? staffID = await sharedPreferences.getSecurePrefsValue('STAFF ID');
+      } else if(privilege == 'YEAR COORDINATOR' || privilege=='HOD' || privilege=='FACULTY ADVISOR' || privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
+        staffID = await sharedPreferences.getSecurePrefsValue('STAFF ID');
+        branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
 
-        detailsRef = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/LECTURERS/$staffID');
+        detailsRef = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/$branch/$staffID');
       }else if(privilege=='WARDENS' || privilege =='HOSTEL WARDEN'){
         String? staffID=await sharedPreferences.getSecurePrefsValue('STAFF ID');
         detailsRef=FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/WARDENS/$staffID');
@@ -224,8 +225,9 @@ class _HomeState extends State<Home> {
       print('detailsRef: ${detailsRef.path}');
 
       Map<String, dynamic> details = await firebaseService.getMapDetailsFromDoc(detailsRef);
+      Map<String,dynamic> encryptedData=await encryptionService.decryptData(utils.getEmail(), details);
 
-      for (MapEntry<String, dynamic> data in details.entries) {
+      for (MapEntry<String, dynamic> data in encryptedData.entries) {
         String key = data.key;
         String value = data.value;
 
@@ -291,55 +293,58 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> storeFcmToken() async {
-    try {
-      String? branch, year, stream, staffID, regNo;
-      String? hostelName, wardenID;
-
-      // Retrieve user information from shared preferences
-      branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
-      hostelName = await sharedPreferences.getSecurePrefsValue('HOSTEL NAME');
-      staffID = await sharedPreferences.getSecurePrefsValue('STAFF ID');
-      year = await sharedPreferences.getSecurePrefsValue("YEAR");
-      regNo = await sharedPreferences.getSecurePrefsValue("REGISTRATION NUMBER");
-      stream = await sharedPreferences.getSecurePrefsValue("STREAM");
-      wardenID = await sharedPreferences.getSecurePrefsValue('HOSTEL WARDEN ID');
-
-      // Get the FCMtoken
-      String? token = await FirebaseMessaging.instance.getToken();
-      if (token == null) {
-        print('Failed to get FCMtoken.');
-        return;
-      }
-
-      // Determine the document reference based on user privilege
-      DocumentReference documentReference;
-      switch (privilege) {
-        case 'HOD':
-        case 'FACULTY ADVISOR':
-        case 'YEAR COORDINATOR':
-        case 'FACULTY ADVISOR AND YEAR COORDINATOR':
-        documentReference = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/LECTURERS/$staffID');
-          break;
-        case 'STUDENT':
-          documentReference = firebaseFirestore.doc('KLU/STUDENTDETAILS/$year/$regNo/');
-          break;
-        case 'HOSTEL WARDEN':
-          documentReference = firebaseFirestore.doc('KLU/HOSTELS/$hostelName/$wardenID');
-          break;
-        default:
-          print('Unknown privilege: $privilege');
-          EasyLoading.dismiss();
-          return;
-      }
-
-      print('fcmTokenRef: ${documentReference.toString()}');
-
-      // Update FCM token in Firestore
-      await documentReference.set({'FCMTOKEN': token}, SetOptions(merge: true));
-      print('FCMTOKEN is updated successfully.');
-    } catch (e) {
-      print('Error in storeFcmToken: $e');
-      // Handle any errors that occur during the execution
-    }
+    // try {
+    //   String? branch, year, stream, staffID, regNo;
+    //   String? hostelName, wardenID;
+    //
+    //   // Retrieve user information from shared preferences
+    //   branch = await sharedPreferences.getSecurePrefsValue('BRANCH');
+    //   hostelName = await sharedPreferences.getSecurePrefsValue('HOSTEL NAME');
+    //   staffID = await sharedPreferences.getSecurePrefsValue('STAFF ID');
+    //   year = await sharedPreferences.getSecurePrefsValue("YEAR");
+    //   regNo = await sharedPreferences.getSecurePrefsValue("REGISTRATION NUMBER");
+    //   stream = await sharedPreferences.getSecurePrefsValue("STREAM");
+    //   wardenID = await sharedPreferences.getSecurePrefsValue('HOSTEL WARDEN ID');
+    //   String? uid=await sharedPreferences.getSecurePrefsValue('UID');
+    //
+    //   // Get the FCMtoken
+    //   String? token = await FirebaseMessaging.instance.getToken();
+    //   if (token == null) {
+    //     print('Failed to get fcmToken.');
+    //     return;
+    //   }
+    //
+    //   // Determine the document reference based on user privilege
+    //   DocumentReference documentReference;
+    //   switch (privilege) {
+    //     case 'HOD':
+    //     case 'FACULTY ADVISOR':
+    //     case 'YEAR COORDINATOR':
+    //     case 'FACULTY ADVISOR AND YEAR COORDINATOR':
+    //     documentReference = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/$branch/$staffID');
+    //       break;
+    //     case 'STUDENT':
+    //       documentReference = firebaseFirestore.doc('KLU/STUDENTDETAILS/$year/$regNo/');
+    //       break;
+    //     case 'HOSTEL WARDEN':
+    //       documentReference = firebaseFirestore.doc('KLU/HOSTELS/$hostelName/$wardenID');
+    //       break;
+    //     default:
+    //       print('Unknown privilege: $privilege');
+    //       EasyLoading.dismiss();
+    //       return;
+    //   }
+    //
+    //   print('fcmTokenRef: ${documentReference.toString()}');
+    //
+    //   print('user UID: $uid');
+    //
+    //   Map<String,String> data={'FCMTOKEN':token};
+    //   await firebaseService.uploadMapDetailsToDoc(documentReference, data, uid!);
+    //   print('FCMTOKEN is updated successfully.');
+    // } catch (e) {
+    //   print('Error in storeFcmToken: $e');
+    //   // Handle any errors that occur during the execution
+    // }
   }
 }

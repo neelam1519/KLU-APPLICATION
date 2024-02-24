@@ -18,54 +18,51 @@ class EncryptionService {
     return encrypt.Key(Uint8List.fromList(hashBytes)); // Convert hash bytes to Uint8List and return as the key
   }
 
-  Future<Map<String, dynamic>> encryptData(String keyString, Map<String, dynamic> data) async {
-    final key = generateKey(keyString);
-    final iv = IV.fromLength(16); // IV is usually 16 bytes for AES
 
-    final encrypter = Encrypter(AES(key));
+  Future<Map<String, dynamic>> encryptData(String keySalt, Map<String, dynamic> data) async {
+    final encrypter = Encrypter(AES(await generateKey(keySalt), mode: AESMode.cbc, padding: "PKCS7"));
+    final keysToEncrypt = data.keys.toList();
+    final iv = IV.fromSecureRandom(16);
 
-    // List of keys to exclude from encryption
-    final keysToExclude = ['FCMTOKEN', 'UID'];
-
-    // Encrypt the values of the map, excluding specific keys
     Map<String, dynamic> encryptedData = {};
-    data.forEach((key, value) {
-      if (!keysToExclude.contains(key)) {
-        final jsonString = json.encode(value);
-        final encryptedValue = encrypter.encrypt(jsonString, iv: iv);
-        encryptedData[key] = encryptedValue.base64;
+    for (var key in keysToEncrypt) {
+      final value = data[key];
+      if (ExcludeKeys(key)) {
+        final encrypted = encrypter.encrypt(value, iv: iv);
+        encryptedData[key] = base64.encode(iv.bytes) + ":" + encrypted.base64;
       } else {
-        // Keep values of excluded keys as they are
-        encryptedData[key] = value;
+        encryptedData[key] = value; // Directly store value without encryption
       }
-    });
-
-    print('Encrypted Data: $encryptedData');
-
+    }
     return encryptedData;
   }
 
-  Future<Map<String, dynamic>> decryptData(String string, Map<String, dynamic> encryptedData) async {
-    final aes = Encrypter(AES(generateKey(string))); // Use the generated key for decryption
+  bool ExcludeKeys(String key) {
+    final keysToExclude = ['FCMTOKEN', 'UID']; // List of keys to exclude from encryption
+    return !keysToExclude.contains(key);
+  }
 
-    // List of keys to exclude from decryption
-    final keysToExclude = ['FCMTOKEN', 'UID'];
+  Future<Map<String, dynamic>> decryptData(String keySalt, Map<String, dynamic> encryptedData) async {
+    final encrypter = Encrypter(AES(await generateKey(keySalt), mode: AESMode.cbc, padding: "PKCS7"));
+    final keysToDecrypt = encryptedData.keys.toList();
 
-    // Decrypt the values of the map, excluding specific keys
     Map<String, dynamic> decryptedData = {};
-    encryptedData.forEach((key, value) {
-      if (!keysToExclude.contains(key)) {
-        final encryptedValue = Encrypted(value);
-        final decryptedValue = aes.decrypt(encryptedValue);
-        final decodedValue = json.decode(decryptedValue);
-        decryptedData[key] = decodedValue;
+    for (var key in keysToDecrypt) {
+      final encryptedValue = encryptedData[key];
+      if (ExcludeKeys(key)) {
+        final ivAndEncrypted = encryptedValue.split(":");
+        if (ivAndEncrypted.length != 2) {
+          print("Error decrypting value for key: $key. Invalid format.");
+          continue; // Skip to the next iteration
+        }
+        final iv = IV.fromBase64(ivAndEncrypted[0]);
+        final encrypted = Encrypted.fromBase64(ivAndEncrypted[1]);
+        final decryptedValue = encrypter.decrypt(encrypted, iv: iv);
+        decryptedData[key] = decryptedValue;
       } else {
-        // Keep values of excluded keys as they are
-        decryptedData[key] = value;
+        decryptedData[key] = encryptedValue; // Keep value as it is without decryption
       }
-    });
-
-    print('Decrypted Data: $decryptedData');
+    }
     return decryptedData;
   }
 

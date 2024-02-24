@@ -18,12 +18,27 @@ class FirebaseService {
 
   Future<void> uploadMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data, String ID) async {
     try {
-
-      print('Uploading Data: ${data.toString()}');
+ ;
       await documentReference.set({
         ...data, // Include the document data
         'verificationID': ID, // Additional metadata
       }, SetOptions(merge: true)); // Use merge option to merge with existing document
+
+      print('Map values uploaded successfully!');
+    } catch (error) {
+      print('Error uploading map values: $error');
+      // Handle the error as needed
+    }
+  }
+
+  Future<void> setMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data,String ID) async {
+    try {
+      Map<String,dynamic> encryptedData=await encryptionService.encryptData(utils.getEmail(), data);
+      print('Uploading Data: ${encryptedData.toString()}');
+      await documentReference.set({
+        ...encryptedData,
+        'verificationID': ID
+      }); // Use merge option to merge with existing document
 
       print('Map values uploaded successfully!');
     } catch (error) {

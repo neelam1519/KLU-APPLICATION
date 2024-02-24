@@ -23,6 +23,14 @@
           }
         },
         {
+          "client_id": "1092181859695-52u9dqqu0ga88blethgkv333o25jkcjp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.neelam.myUniv",
+            "certificate_hash": "772e145a0b95be8a8647e330eca4325f48b4d023"
+          }
+        },
+        {
           "client_id": "1092181859695-nbrtc5902keuqu6p2gphfc1vftevd196.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

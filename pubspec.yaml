@@ -54,7 +54,7 @@ dependencies:
   permission_handler: ^11.2.0
   firebase_messaging: ^14.7.14
   rxdart: ^0.27.7
-  firebase_analytics: ^10.8.4
+  firebase_analytics: ^10.8.6
   flutter_launcher_icons: ^0.13.1
   flutter_local_notifications: ^16.3.2
   cupertino_icons: ^1.0.6
@@ -65,6 +65,7 @@ dependencies:
   googleapis_auth: ^1.4.1
   path: ^1.8.3
   basic_utils: ^5.7.0
+  firebase_crashlytics: ^3.4.15
 
 dev_dependencies:
   flutter_test:

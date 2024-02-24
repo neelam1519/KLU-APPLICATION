@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,17 +15,16 @@ import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/readers.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
-import 'package:path/path.dart';
 import 'package:provider/provider.dart';
 import 'package:sign_in_button/sign_in_button.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:encrypt/encrypt.dart' as encrypt;
 
 import 'home.dart';
 
 void main() async {
 
   await _initializeFlutterFire();
+  //FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   runApp(
     MultiProvider(
       providers: [
@@ -219,9 +219,8 @@ class MyHomePage extends StatelessWidget {
 
           String? lecturerOrStudent=await utils.lecturerORStudent(regNo);
 
-          DocumentReference detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS');
-
-          lecturerOrStudent='STAFF';
+          //lecturerOrStudent='STAFF';
+          print('SIGNED IN AS: $lecturerOrStudent');
 
           if(lecturerOrStudent == 'STUDENT'){
 
@@ -273,14 +272,14 @@ class MyHomePage extends StatelessWidget {
               studentTotalDetails.addAll({'PRIVILEGE':'STUDENT','UID':userId,'FCMTOKEN':fcmToken,'EMAIL ID':email,'STREAM':faDetails['FACULTY ADVISOR STREAM'],'BRANCH':faDetails['BRANCH'],
               'NAME':studentFileDetails['NAME'],'SECTION':studentFileDetails['SECTION'],'YEAR':year,'SLOT':faDetails['SLOT'],'REGISTRATION NUMBER':regNo,'FACULTY ADVISOR NAME':faDetails['NAME'],
               'FACULTY ADVISOR STAFF ID':faDetails['STAFF ID'],'YEAR COORDINATOR NAME':adminDetails['NAME'],'YEAR COORDINATOR STAFF ID':adminDetails['STAFF ID']});
-              await firebaseService.uploadMapDetailsToDoc(documentReference, studentTotalDetails, regNo);
+              await firebaseService.setMapDetailsToDoc(documentReference, studentTotalDetails,userId);
 
               EasyLoading.dismiss();
               redirectToHome(context);
 
             }catch(e){
               signOutUser();
-              utils.showToastMessage('ERROR OCCURED WHILE UPLOADING THE DATA', context);
+              utils.showToastMessage('ERROR OCCURRED WHILE UPLOADING THE DATA', context);
             }
 
           }else if(lecturerOrStudent=='STAFF') {
@@ -332,11 +331,12 @@ class MyHomePage extends StatelessWidget {
                 privilege = 'FACULTY ADVISOR';
 
                 docRef = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/${faDetails['BRANCH']}/${faDetails['STAFF ID']}');
-                faDetails.addAll({'UID': userId, 'FCMTOKEN': fcmToken!});
-                await firebaseService.uploadMapDetailsToDoc(
-                    docRef, faDetails, '${faDetails['STAFF ID']}');
+                faDetails.addAll({'UID': userId, 'FCMTOKEN': fcmToken!,'PRIVILEGE':privilege,'EMAIL ID':email});
+                await firebaseService.setMapDetailsToDoc(docRef, faDetails,userId);
 
+                sharedPreferences.storeValueInSecurePrefs('BRANCH', faDetails['BRANCH']);
                 sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', privilege);
+                sharedPreferences.storeValueInSecurePrefs('STAFF ID', faDetails['STAFF ID']);
                 redirectToHome(context);
               } else if (faDetails.isEmpty && adminDetails.isNotEmpty) {
                 if (email == 'hodcse@klu.ac.in') {
@@ -347,10 +347,11 @@ class MyHomePage extends StatelessWidget {
 
                 docRef = FirebaseFirestore.instance.doc(
                     'KLU/STAFFDETAILS/${adminDetails['BRANCH']}/${adminDetails['STAFF ID']}');
-                adminDetails.addAll({'UID': userId, 'FCMTOKEN': fcmToken!});
-                await firebaseService.uploadMapDetailsToDoc(
-                    docRef, adminDetails, '${adminDetails['STAFF ID']}');
+                adminDetails.addAll({'UID': userId, 'FCMTOKEN': fcmToken!,'PRIVILEGE':privilege,'EMAIL ID':email});
+                await firebaseService.setMapDetailsToDoc(docRef, adminDetails,userId);
 
+                sharedPreferences.storeValueInSecurePrefs('BRANCH', adminDetails['BRANCH']);
+                sharedPreferences.storeValueInSecurePrefs('STAFF ID', adminDetails['STAFF ID']);
                 sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', privilege);
                 redirectToHome(context);
               } else if (faDetails.isNotEmpty && adminDetails.isNotEmpty) {
@@ -358,13 +359,14 @@ class MyHomePage extends StatelessWidget {
 
                 Map<String, dynamic> totalDetails = {};
                 totalDetails.addAll(faDetails);
-                adminDetails.addAll(adminDetails);
+                totalDetails.addAll(adminDetails);
 
                 docRef = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/${adminDetails['BRANCH']}/${adminDetails['STAFF ID']}');
-                adminDetails.addAll({'UID': userId, 'FCMTOKEN': fcmToken!});
-                await firebaseService.uploadMapDetailsToDoc(
-                    docRef, totalDetails, '${adminDetails['STAFF ID']}');
+                totalDetails.addAll({'UID': userId, 'FCMTOKEN': fcmToken!,'PRIVILEGE':privilege,'EMAIL ID':email});
+                await firebaseService.setMapDetailsToDoc(docRef, totalDetails,userId);
 
+                sharedPreferences.storeValueInSecurePrefs('BRANCH', adminDetails['BRANCH']);
+                sharedPreferences.storeValueInSecurePrefs('STAFF ID', adminDetails['STAFF ID']);
                 sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', privilege);
                 redirectToHome(context);
               } else {
