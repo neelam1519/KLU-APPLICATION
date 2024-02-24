@@ -3,6 +3,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:klu_flutter/leaveapply/leaveform.dart';
+import 'package:klu_flutter/security/EncryptionService.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
@@ -17,6 +18,7 @@ class StudentsLeaveFormsView extends StatefulWidget {
 class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
   SharedPreferences sharedPreferences = SharedPreferences();
   FirebaseService firebaseService = FirebaseService();
+  EncryptionService encryptionService = EncryptionService();
   Utils utils = Utils();
   late CollectionReference studentLeaveRef=FirebaseFirestore.instance.collection('KLU/STUDENTDETAILS/1');
 
@@ -61,7 +63,17 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
               itemCount: leaveForms.length,
               itemBuilder: (context, index) {
                 EasyLoading.dismiss();
-                return buildLeaveCard(leaveForms[index]);
+                return FutureBuilder<void>(
+                  future: retrieveAndBuildLeaveCard(leaveForms[index]),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return SizedBox(); // Placeholder widget while waiting for decryption
+                    } else {
+                      // Return the leave card built from decrypted data
+                      return snapshot.data as Widget;
+                    }
+                  },
+                );
               },
             );
           }
@@ -83,9 +95,15 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
     );
   }
 
+  Future<Widget> retrieveAndBuildLeaveCard(DocumentSnapshot leaveforms) async {
+    final cardData = leaveforms.data() as Map<String, dynamic>;
+    cardData.remove('verificationID');
+    Map<String, dynamic> encryptedData = await encryptionService.decryptData(utils.getEmail(), cardData);
+    print('Decrypted LeaveData: ${encryptedData.toString()}');
+    return buildLeaveCard(encryptedData);
+  }
 
-  Widget buildLeaveCard(DocumentSnapshot leaveForm) {
-    final cardData = leaveForm.data() as Map<String, dynamic>;
+  Widget buildLeaveCard(Map<String, dynamic> cardData) {
     return Card(
       child: ListTile(
         title: Column(
@@ -122,6 +140,7 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
                   leaveformtype: '',
                   lecturerRef: studentLeaveRef.doc(cardData['LEAVE ID']).toString(),
                   type: '',
+                  regNo: cardData['REGISTRATION NUMBER'],
                 ),
               ),
             );
@@ -130,4 +149,6 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
       ),
     );
   }
+
+
 }

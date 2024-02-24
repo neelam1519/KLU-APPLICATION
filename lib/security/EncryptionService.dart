@@ -38,7 +38,7 @@ class EncryptionService {
   }
 
   bool ExcludeKeys(String key) {
-    final keysToExclude = ['FCMTOKEN', 'UID']; // List of keys to exclude from encryption
+    final keysToExclude = ['FCMTOKEN', 'UID','REGISTRATION NUMBER']; // List of keys to exclude from encryption
     return !keysToExclude.contains(key);
   }
 

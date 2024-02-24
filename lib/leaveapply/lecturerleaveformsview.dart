@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:intl/intl.dart';
 import 'package:klu_flutter/leaveapply/leavedetailsview.dart';
+import 'package:klu_flutter/security/EncryptionService.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/RealtimeDatabase.dart';
 import 'package:klu_flutter/utils/utils.dart';
@@ -25,6 +26,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
   late FirebaseService firebaseService=FirebaseService();
   late SharedPreferences sharedPreferences=SharedPreferences();
   RealtimeDatabase realtimeDatabase=RealtimeDatabase();
+  EncryptionService encryptionService=EncryptionService();
 
   late List<String> yearList = [];
   late List<String> streamList = [];
@@ -655,10 +657,8 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
               ),
             );
           } else {
-            Map<String, dynamic> leaveCardData = snapshot.data!.data() as Map<
-                String,
-                dynamic>;
-            print('LEAVECARD DATA: ${leaveCardData.toString()}');
+            Map<String, dynamic> leaveCardData = snapshot.data!.data() as Map<String, dynamic>;
+            print('LEAVE CARD DATA: ${leaveCardData.toString()}');
 
             return FutureBuilder<Map<String, dynamic>>(
               future: retrieveData(leaveCardData),
@@ -724,15 +724,13 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
                           ),
                           onTap: () async {
                             // Navigate to leave data screen
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    LeaveDetailsView(
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => LeaveDetailsView(
                                       leaveid: value['LEAVE ID'],
                                       leaveformtype: leaveFormType,
                                       lecturerRef: detailsRetrievingRef!.path,
                                       type: selectedSpinnerOption1,
+                                      regNo:value['REGISTRATION NUMBER'],
+
                                     ),
                               ),
                             );
@@ -755,14 +753,14 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
 
   Future<Map<String, dynamic>> retrieveData(Map<String, dynamic> leaveCardData) async {
     print('Retrieve Data Started');
-    List<String> dataRequired=[];
+    List<String> dataRequired = [];
 
-    if(leaveFormType == 'PENDING'){
-      dataRequired = ['START DATE', 'RETURN DATE', 'LEAVE ID', 'VERIFICATION STATUS'];
-
-    }else{
-      dataRequired = ['START DATE', 'RETURN DATE', 'LEAVE ID', 'VERIFICATION STATUS','$staffID TIMESTAMP'];
+    if (leaveFormType == 'PENDING') {
+      dataRequired = ['START DATE', 'RETURN DATE', 'LEAVE ID', 'VERIFICATION STATUS', 'REGISTRATION NUMBER'];
+    } else {
+      dataRequired = ['START DATE', 'RETURN DATE', 'LEAVE ID', 'VERIFICATION STATUS', 'REGISTRATION NUMBER', '$staffID TIMESTAMP'];
     }
+
     // Map to store retrieved data
     Map<String, dynamic> retrievedDataMap = {};
     leaveCardData.remove('verificationID');
@@ -770,33 +768,48 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
     try {
       for (MapEntry<String, dynamic> entry in leaveCardData.entries) {
         String key = entry.key;
-        DocumentReference value = entry.value;
-        studentLeaveForms = value.collection('LEAVEFORMS').doc(key);
+        String encryptedValue = entry.value; // Assuming value is stored as String
+
+        Map<String, dynamic> data = {'VALUE': encryptedValue};
+        Map<String, dynamic> decryptedData = await encryptionService.decryptData(utils.getEmail(), data);
+        List<String> splitValue=decryptedData['VALUE'].split('/');
+
+        DocumentReference detailsRef = FirebaseFirestore.instance.doc(decryptedData['VALUE']);
+
+        print('Key: $key   Reference: $detailsRef');
+        DocumentReference leaveFormRef = detailsRef.collection('LEAVEFORMS').doc(key);
 
         // Retrieve data for the current entry
-        Map<String, dynamic>? retrievedData = await firebaseService.getValuesFromDocRef(studentLeaveForms, dataRequired);
+        Map<String, dynamic>? retrievedData = await firebaseService.getValuesFromDocRef(leaveFormRef, dataRequired,'${splitValue.last}@klu.ac.in');
+        print('RETRIVED DATA: ${retrievedData.toString()}');
 
         retrievedDataMap[key] = retrievedData;
       }
+      // Decrypt the retrieved data
+      print('SALT: ${retrievedDataMap['REGISTRATION NUMBER']}@klu.ac.in');
 
+      // Output retrieved data
       for (MapEntry<String, dynamic> entry in retrievedDataMap.entries) {
         String key = entry.key;
         dynamic value = entry.value;
         print('retrievedDataMap: $key : $value');
       }
-      // Sort retrievedDataMap based on the leaveId in descending order
-      if(leaveFormType == 'PENDING'){
-        retrievedDataMap = sortMapByLeaveId(retrievedDataMap);
 
-      }else{
+      // Sort retrievedDataMap based on the leaveId or timestamp
+      if (leaveFormType == 'PENDING') {
+        retrievedDataMap = sortMapByLeaveId(retrievedDataMap);
+      } else {
         retrievedDataMap = sortMapByTimestamp(retrievedDataMap);
       }
     } catch (e) {
       print('retriveData: $e');
     }
+
     // Return the map containing all retrieved data
     return retrievedDataMap;
   }
+
+
 
   Map<String, dynamic> sortMapByLeaveId(Map<String, dynamic> dataMap, {bool descending = false}) {
     print('sort by leaveID');
@@ -885,7 +898,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
         print('Collection Ref Accept all: ${detailsRetrievingRef!.path}');
 
         // Get the pending forms
-        Map<String, dynamic> formRef = await firebaseService.getMapDetailsFromDoc(collectionReference.doc('PENDING'));
+        Map<String, dynamic> formRef = await firebaseService.getMapDetailsFromDoc(collectionReference.doc('PENDING'),utils.getEmail());
         formRef.remove('verificationID');
 
         print('FormRef: ${formRef.toString()}');
@@ -904,7 +917,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           Map<String, dynamic> data = {'YEAR COORDINATOR APPROVAL': 'APPROVED'};
 
           // Update YEAR COORDINATOR APPROVAL to true
-          await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVEFORMS').doc(key), data, staffID!);
+          await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVEFORMS').doc(key), data, staffID!,utils.getEmail());
 
           data.clear();
           data.addAll({key: value});
@@ -912,7 +925,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           print('Moving form $key to ACCEPTED collection');
 
           // Move the form to ACCEPTED collection
-          await firebaseService.uploadMapDetailsToDoc(collectionReference.doc('ACCEPTED'), data, staffID!);
+          await firebaseService.uploadMapDetailsToDoc(collectionReference.doc('ACCEPTED'), data, staffID!,utils.getEmail());
 
           hostelName = 'BHARATHI MENS HOSTEL';
           hostelType = 'NORMAL';
@@ -922,7 +935,7 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           DocumentReference hostelRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/$hostelFloor/PENDING');
           print('Redirecting Ref: ${hostelRef.path}');
 
-          await firebaseService.uploadMapDetailsToDoc(hostelRef, data, staffID!);
+          await firebaseService.uploadMapDetailsToDoc(hostelRef, data, staffID!,utils.getEmail());
 
           // Delete the form from the original collection
           await firebaseService.deleteField(detailsRetrievingRef!, key);

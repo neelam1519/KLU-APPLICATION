@@ -16,11 +16,13 @@ class FirebaseService {
   late Key key;
 
 
-  Future<void> uploadMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data, String ID) async {
+  Future<void> uploadMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data, String ID,String keySalt) async {
     try {
- ;
+      Map<String,dynamic> encryptedData=await encryptionService.encryptData(keySalt, data);
+      print('Uploading Data: ${encryptedData.toString()}');
+
       await documentReference.set({
-        ...data, // Include the document data
+        ...encryptedData, // Include the document data
         'verificationID': ID, // Additional metadata
       }, SetOptions(merge: true)); // Use merge option to merge with existing document
 
@@ -31,9 +33,13 @@ class FirebaseService {
     }
   }
 
-  Future<void> setMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data,String ID) async {
+  Future<void> setMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data, String ID,String keysalt) async {
     try {
-      Map<String,dynamic> encryptedData=await encryptionService.encryptData(utils.getEmail(), data);
+      Map<String, dynamic> encryptedData = await encryptionService.encryptData(keysalt, data);
+      DocumentSnapshot documentSnapshot = await documentReference.get();
+      if (documentSnapshot.exists) {
+        await deleteDocument(documentReference); // Await the deletion
+      }
       print('Uploading Data: ${encryptedData.toString()}');
       await documentReference.set({
         ...encryptedData,
@@ -47,7 +53,7 @@ class FirebaseService {
     }
   }
 
-  Future<Map<String, dynamic>> getMapDetailsFromDoc(DocumentReference documentReference) async {
+  Future<Map<String, dynamic>> getMapDetailsFromDoc(DocumentReference documentReference,String salt) async {
     try {
       // Get the document snapshot
       DocumentSnapshot snapshot = await documentReference.get();
@@ -56,6 +62,13 @@ class FirebaseService {
       if (snapshot.exists) {
         // Access the data from the snapshot
         Map<String, dynamic>? mapData = snapshot.data() as Map<String, dynamic>?;
+
+        if(mapData!.containsKey('verificationID')){
+          mapData.remove('verificationID');
+        }
+
+        mapData=await encryptionService.decryptData(salt, mapData);
+        print('Retrieved Decrypted Data: ${mapData.toString()}');
 
         // Return the map details
         return mapData ?? {};
@@ -113,7 +126,7 @@ class FirebaseService {
       }
     }
 
-  Future<Map<String, dynamic>?> getValuesFromDocRef(DocumentReference documentReference, List<String> requiredFieldNames) async {
+  Future<Map<String, dynamic>?> getValuesFromDocRef(DocumentReference documentReference, List<String> requiredFieldNames,String salt) async {
     try {
       // Get the document snapshot
       DocumentSnapshot snapshot = await documentReference.get();
@@ -140,7 +153,7 @@ class FirebaseService {
             fieldValues[field] = null;
           }
         }
-
+        fieldValues=await encryptionService.decryptData(salt, fieldValues);
         return fieldValues;
       } else {
         // Document doesn't exist

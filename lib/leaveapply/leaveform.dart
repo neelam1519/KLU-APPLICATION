@@ -130,6 +130,7 @@ class _LeaveFormState extends State<LeaveForm> {
     String? section=await secureStorage.getSecurePrefsValue("SECTION");
     String? staffID=await secureStorage.getSecurePrefsValue('STAFF ID');
     String? privilege=await secureStorage.getSecurePrefsValue('PRIVILEGE');
+    String? faMailID=await secureStorage.getSecurePrefsValue('FACULTY ADVISOR EMAIL ID');
 
     try {
       await realtimeDatabase.incrementLeaveCount('KLU/LEAVE COUNT');
@@ -205,32 +206,23 @@ class _LeaveFormState extends State<LeaveForm> {
         'HOSTEL ROOM NUMBER': '215'
       });
 
-      DocumentReference studentRef = FirebaseFirestore.instance.doc(
-          'KLU/STUDENTDETAILS/$year/$regNo');
-      await firebaseService.uploadMapDetailsToDoc(
-          studentRef.collection('LEAVEFORMS').doc(leaveCount), data, regNo!);
+      DocumentReference studentRef = FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
+      await firebaseService.setMapDetailsToDoc(studentRef.collection('LEAVEFORMS').doc(leaveCount), data, regNo!,utils.getEmail());
 
       print('studentRef: ${studentRef.path}');
 
       data.clear();
-      data.addAll({leaveCount: studentRef});
-      User? user = FirebaseAuth.instance.currentUser;
-      String uid = user!.uid;
+      data.addAll({leaveCount: 'KLU/STUDENTDETAILS/$year/$regNo'});
 
-      print('User ID: $uid');
-      print('REGISTRATION NUMBER: ${regNo}');
-
-      DocumentReference classPendingRef = FirebaseFirestore.instance.doc(
-          '/KLU/CLASSROOMDETAILS/$year/$branch/$stream/$section/LEAVEFORMS/PENDING');
-      await firebaseService.uploadMapDetailsToDoc(classPendingRef, data, regNo);
+      DocumentReference classPendingRef = FirebaseFirestore.instance.doc('/KLU/CLASSROOMDETAILS/$year/$branch/$stream/$section/LEAVEFORMS/PENDING');
+      print('classdetails: ${data.toString()}');
+      await firebaseService.uploadMapDetailsToDoc(classPendingRef, data, regNo,faMailID!);
 
       //Navigator.of(context).pop();
       Navigator.pop(context);
       EasyLoading.dismiss();
 
-      utils.showToastMessage(
-          "The Leave Form is Sent to ${faName!.toUpperCase()} For approval",
-          context);
+      utils.showToastMessage("The Leave Form is Sent to ${faName!.toUpperCase()} For approval", context);
     }catch(e){
       print('onSubmitButton: $e');
     }

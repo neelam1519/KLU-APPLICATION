@@ -282,7 +282,7 @@ class _UpdateDetailsState extends State<UpdateDetails> {
         // Update the document in Firestore with the updatedValue
         DocumentReference staffDetailsRef = FirebaseFirestore.instance.doc('/KLU/STAFFDETAILS/LECTURERS/$key');
         print('LecturerDocumentReference: ${staffDetailsRef.path}');
-        await firebaseService.uploadMapDetailsToDoc(staffDetailsRef, updatedValue,staffID!);
+        await firebaseService.uploadMapDetailsToDoc(staffDetailsRef, updatedValue,staffID!,utils.getEmail());
       }
 
     } catch (e) {

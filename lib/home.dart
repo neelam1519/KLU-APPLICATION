@@ -205,7 +205,7 @@ class _HomeState extends State<Home> {
       if (privilege == 'STUDENT') {
         regNo = await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
         year = await utils.getYearFromRegNo(regNo!);
-
+        print('REGISTRATION NUMBER: $regNo');
         detailsRef = FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
       } else if(privilege == 'YEAR COORDINATOR' || privilege=='HOD' || privilege=='FACULTY ADVISOR' || privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
         staffID = await sharedPreferences.getSecurePrefsValue('STAFF ID');
@@ -224,14 +224,12 @@ class _HomeState extends State<Home> {
 
       print('detailsRef: ${detailsRef.path}');
 
-      Map<String, dynamic> details = await firebaseService.getMapDetailsFromDoc(detailsRef);
-      Map<String,dynamic> encryptedData=await encryptionService.decryptData(utils.getEmail(), details);
+      Map<String, dynamic> details = await firebaseService.getMapDetailsFromDoc(detailsRef,utils.getEmail());
+      details.remove('verificationID');
 
-      for (MapEntry<String, dynamic> data in encryptedData.entries) {
+      for (MapEntry<String, dynamic> data in details.entries) {
         String key = data.key;
         String value = data.value;
-
-        print('mapValues: $key:  $value');
 
         await sharedPreferences.storeValueInSecurePrefs(key, value);
       }

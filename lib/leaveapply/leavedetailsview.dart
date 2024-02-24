@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:googleapis/apigeeregistry/v1.dart';
 import 'package:klu_flutter/leaveapply/studentformsview.dart';
+import 'package:klu_flutter/security/EncryptionService.dart';
 import 'package:klu_flutter/utils/RealtimeDatabase.dart';
 import 'package:klu_flutter/utils/loadingdialog.dart';
 import 'package:klu_flutter/utils/utils.dart';
@@ -15,7 +16,8 @@ class LeaveDetailsView extends StatefulWidget {
   final String leaveformtype;
   final String lecturerRef;
   final String type;
-  LeaveDetailsView({required this.leaveid, required this.leaveformtype, required this.lecturerRef,required this.type});
+  final String regNo;
+  LeaveDetailsView({required this.leaveid, required this.leaveformtype, required this.lecturerRef,required this.type,required this.regNo});
   @override
   _LeaveDataState createState() => _LeaveDataState();
 }
@@ -29,6 +31,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
   FirebaseService firebaseService = FirebaseService();
   SharedPreferences sharedPreferences = SharedPreferences();
   RealtimeDatabase realtimeDatabase=RealtimeDatabase();
+  EncryptionService encryptionService=EncryptionService();
   String? privilege,staffID;
   late DocumentReference lecturerReference;
   List<String> details=[];
@@ -179,22 +182,19 @@ class _LeaveDataState extends State<LeaveDetailsView> {
         verified='APPROVED';
       }
 
-      await realtimeDatabase.incrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/'
-          '${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/ACCEPTED');
-
-      await realtimeDatabase.decrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/'
-          '${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/PENDING');
+      await realtimeDatabase.incrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/ACCEPTED');
+      await realtimeDatabase.decrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/PENDING');
 
       List<String> listData=[];
       listData.add(widget.leaveid);
 
-      Map<String,dynamic>? values = await firebaseService.getValuesFromDocRef(leaveRef.doc('PENDING'),listData);
+      Map<String,dynamic>? values = await firebaseService.getValuesFromDocRef(leaveRef.doc('PENDING'),listData,utils.getEmail());
       value=values![widget.leaveid];
       print('onAccept ${value.toString()}');
 
       Map<String,dynamic> data={widget.leaveid:value};
 
-      await firebaseService.uploadMapDetailsToDoc(leaveRef.doc('ACCEPTED'), data,staffID!);
+      await firebaseService.uploadMapDetailsToDoc(leaveRef.doc('ACCEPTED'), data,staffID!,utils.getEmail());
       await firebaseService.deleteField(leaveRef.doc('PENDING'), widget.leaveid);
 
       data.clear();
@@ -202,12 +202,12 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       print("Updating Fields: ${data.toString()}");
       print('Redirecting Reference: ${redirectingRef.path}');
 
-      await firebaseService.uploadMapDetailsToDoc(value!.collection('LEAVEFORMS').doc(widget.leaveid),data,staffID!);
+      await firebaseService.uploadMapDetailsToDoc(value!.collection('LEAVEFORMS').doc(widget.leaveid),data,staffID!,'${studentLeaveDetails['REGISTRATION NUMBER']}@klu.ac.in');
 
       data.clear();
       data.addAll({widget.leaveid:value});
       if(privilege !='HOSTEL WARDEN'){
-        await firebaseService.uploadMapDetailsToDoc(redirectingRef, data,staffID!);
+        await firebaseService.uploadMapDetailsToDoc(redirectingRef, data,staffID!,'${studentLeaveDetails['YEAR COORDINATOR EMAIL ID']}@klu.ac.in');
       }
 
       Navigator.pop(context);
@@ -247,26 +247,21 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       }
 
       print('Incrementing leave count...');
-      await realtimeDatabase.incrementLeaveCount(
-          '/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/REJECTED'
-      );
-
+      await realtimeDatabase.incrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/REJECTED');
       print('Decrementing leave count...');
-      await realtimeDatabase.decrementLeaveCount(
-          '/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/PENDING'
-      );
+      await realtimeDatabase.decrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/PENDING');
 
       Map<String, dynamic> data={};
 
       print('Getting document reference field value...');
       List<String> listData=[widget.leaveid];
-      Map<String,dynamic>? values = await firebaseService.getValuesFromDocRef(collectionReference.doc('PENDING'), listData);
+      Map<String,dynamic>? values = await firebaseService.getValuesFromDocRef(collectionReference.doc('PENDING'), listData,'${studentLeaveDetails['REGISTRATION NUMBER']}@klu.ac.in');
       value=values![widget.leaveid];
 
       data.clear();
       data.addAll({widget.leaveid:value});
       print('Storing document reference...');
-      await firebaseService.uploadMapDetailsToDoc(collectionReference.doc('REJECTED'), data,staffID!);
+      await firebaseService.uploadMapDetailsToDoc(collectionReference.doc('REJECTED'), data,staffID!,utils.getEmail());
 
       print('Deleting field...');
       await firebaseService.deleteField(
@@ -280,7 +275,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       print('Uploading map details to doc...');
       await firebaseService.uploadMapDetailsToDoc(
           value!.collection('LEAVEFORMS').doc(widget.leaveid), data, staffID!
-      );
+          ,utils.getEmail());
       Navigator.pop(context);
       // Stop the loading dialog before navigating back
       EasyLoading.dismiss();
@@ -359,8 +354,11 @@ class _LeaveDataState extends State<LeaveDetailsView> {
         print('studentDetailsRef: ${studentDetailsRef.path}');
       }else if (privilege == 'FACULTY ADVISOR' || privilege == 'YEAR COORDINATOR' || privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR' || privilege == 'HOSTEL WARDEN' || privilege=='HOD') {
         List<String> listData=[widget.leaveid];
-        Map<String,dynamic>? values = await firebaseService.getValuesFromDocRef(lecturerReference, listData);
-        studentDetailsRef=values![widget.leaveid];
+
+        Map<String,dynamic>? values = await firebaseService.getValuesFromDocRef(lecturerReference, listData,utils.getEmail());
+        print('values:${values.toString()}');
+        studentDetailsRef=FirebaseFirestore.instance.doc(values![widget.leaveid]);
+
       } else {
         utils.showToastMessage('Error occurred. Contact developer. Error code: 1', context);
         EasyLoading.dismiss();
@@ -368,10 +366,10 @@ class _LeaveDataState extends State<LeaveDetailsView> {
 
       print('studentDetailsRef: $studentDetailsRef');
 
-      studentDetails = await firebaseService.getMapDetailsFromDoc(studentDetailsRef);
+      studentDetails = await firebaseService.getMapDetailsFromDoc(studentDetailsRef,'${widget.regNo}@klu.ac.in');
       leaveDetailsRef = studentDetailsRef.collection('LEAVEFORMS').doc(widget.leaveid);
       print('leaveDetailsRef: ${leaveDetailsRef.toString()}');
-      leaveDetails = await firebaseService.getMapDetailsFromDoc(leaveDetailsRef);
+      leaveDetails = await firebaseService.getMapDetailsFromDoc(leaveDetailsRef,'${widget.regNo}@klu.ac.in');
 
       studentLeaveDetails.addAll(studentDetails);
       studentLeaveDetails.addAll(leaveDetails);
@@ -380,7 +378,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       return studentLeaveDetails;
 
     }catch(e){
-      utils.showToastMessage('Error occured try after some time', context);
+      utils.showToastMessage('Error occurred try after some time', context);
       utils.exceptions(e, 'getLeaveDetails');
       EasyLoading.dismiss();
       return {};

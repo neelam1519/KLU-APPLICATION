@@ -80,7 +80,7 @@ class _ReviewState extends State<Review> {
       data.addAll({staffID!: review});
     }
 
-    firebaseService.uploadMapDetailsToDoc(documentReference, data,'review');
+    firebaseService.uploadMapDetailsToDoc(documentReference, data,'review',utils.getEmail());
 
     utils.showToastMessage('REVIEW IS SUBMITTED SUCESSFULLY', context);
 
