@@ -12,17 +12,28 @@ class Reader{
 
 
   Future<Map<String, String>> downloadedDetail(String encodedPath, String filename, Map<String, String> data) async {
-
     String fileUrl = 'https://firebasestorage.googleapis.com/v0/b/myuniv-ed957.appspot.com/o/$encodedPath.xlsx?alt=media';
     print("downloadedDetail: ${fileUrl.toString()}");
 
-    String filePath = await storage.downloadFileInCache(fileUrl, '$filename.xlsx');
-    Map<String, String> details = await readExcelFile(filePath, data);
+    try {
+      String filePath = await storage.downloadFileInCache(fileUrl, '$filename.xlsx');
+      Map<String, String> details = await readExcelFile(filePath, data);
 
-    // Remove white spaces in map values and keys
-    details = details.map((key, value) => MapEntry(key.trim(), value.trim()));
-    return details;
+      // Remove white spaces in map values and keys
+      details = details.map((key, value) => MapEntry(key.trim(), value.trim()));
+      return details;
+    } catch (error) {
+      // Check if the error is a 404 error
+      if (error is HttpException) {
+          // Return an empty map or null to indicate no error
+        print("HTTP EXCEPTION: $error");
+          return {};
+      }
+      // If it's not a 404 error or another error occurred, re-throw the error
+      rethrow;
+    }
   }
+
 
   Future<List<String>> getColumnValues(String filePath, String headerName) async {
     var file = File(filePath);
@@ -169,7 +180,6 @@ class Reader{
               print('Column "$key" not found.');
             }
           }
-
 
           print('Indexes: ${indexes}');
           if (indexes.length == 1) {

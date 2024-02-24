@@ -67,6 +67,14 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    String leaveForm='';
+
+    if(privilege=='STUDENT'){
+      leaveForm='Apply Leave';
+    }else{
+      leaveForm='Leave Forms';
+    }
+
     return WillPopScope(
         onWillPop: () async {
           SystemNavigator.pop();
@@ -105,7 +113,7 @@ class _HomeState extends State<Home> {
                                 child: Image.asset('assets/images/leaveicon.png', width: 130, height: 120, fit: BoxFit.cover),
                               ),
                               SizedBox(height: 8),
-                              Text('Apply Leave'),
+                              Text(leaveForm),
                             ],
                           ),
                         ),
@@ -193,7 +201,7 @@ class _HomeState extends State<Home> {
     utils.showDefaultLoading();
     try {
       DocumentReference detailsRef = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
-
+      utils.showToastMessage('PRIVILEGE: $privilege', context);
       if (privilege == 'STUDENT') {
         regNo = await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
         year = await utils.getYearFromRegNo(regNo!);

@@ -206,6 +206,7 @@ class MyHomePage extends StatelessWidget {
           String year=utils.getYearFromRegNo(regNo);
           String branch=utils.getBranchFromRegNo(regNo);
           String? imageUrl=user.photoURL;
+          String privilege='';
 
           Map<String,String> data={};
 
@@ -220,7 +221,7 @@ class MyHomePage extends StatelessWidget {
 
           DocumentReference detailsRef=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS');
 
-          //lecturerOrStudent='STAFF';
+          lecturerOrStudent='STAFF';
 
           if(lecturerOrStudent == 'STUDENT'){
 
@@ -246,7 +247,7 @@ class MyHomePage extends StatelessWidget {
                     'FACULTY ADVISOR DETAILS NOT FOUND', context);
               }
 
-              String adminPathFileName = Uri.encodeComponent('$year/$branch/$year $branch ADMIN DETAILS');
+              String adminPathFileName = Uri.encodeComponent('$year/$branch/$year $branch ADMINS DETAILS');
               data.clear();
               data = {
                 'BRANCH': faDetails['BRANCH'],
@@ -275,78 +276,116 @@ class MyHomePage extends StatelessWidget {
               await firebaseService.uploadMapDetailsToDoc(documentReference, studentTotalDetails, regNo);
 
               EasyLoading.dismiss();
-
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => Home()));
+              redirectToHome(context);
 
             }catch(e){
               signOutUser();
-              utils.showToastMessage('ERROR OCCURED WHILE UPLODING THE DATA', context);
+              utils.showToastMessage('ERROR OCCURED WHILE UPLOADING THE DATA', context);
             }
 
           }else if(lecturerOrStudent=='STAFF') {
-            List<String> positions = ['LECTURERS', 'WARDENS'];
+
+            List<String> yearsList=['1','2','3','4'];
+            List<String> branchList=['CSE','ECE'];
+            data.clear();
+
+            Map<String,String> faDetails={};
+            Map<String,String> adminDetails={};
+            Map<String,String> wardenDetails={};
 
             try {
-              bool emailFound = false;
+              for (String year in yearsList) {
+                for (String branch in branchList) {
+                  String faFilePath = Uri.encodeComponent('$year/$branch/$year $branch FA DETAILS');
+                  data = {'EMAIL ID': email};
+                  faDetails = await reader.downloadedDetail(
+                      faFilePath, '$year $branch FA DETAILS', data);
 
-              for (String position in positions) {
-                CollectionReference collectionReference = FirebaseFirestore.instance.collection('KLU/STAFFDETAILS/$position');
-                List<String> documents = await firebaseService.getDocuments(collectionReference);
-                print('userId  ${userId}');
-
-                for (String document in documents) {
-                  detailsRef = collectionReference.doc(document);
-                  print("DocRef: ${detailsRef.path}");
-                  List<String> getData=['EMAIL ID'];
-                  Map<String, dynamic>? value = await firebaseService.getValuesFromDocRef(detailsRef, getData);
-
-                  if (value!['EMAIL ID'] == email) {
-                    emailFound = true;
-                    print('STAFF ID: $document');
-                    sharedPreferences.storeValueInSecurePrefs('STAFF ID', document);
-                    sharedPreferences.storeValueInSecurePrefs('EMAIL ID', email);
-                    sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', position);
-
-                    detailsRef = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/$position/$document');
-                    data.addAll({'UID': userId, 'FCMTOKEN': fcmToken!});
-                    await firebaseService.uploadMapDetailsToDoc(detailsRef, data,document);
-
-                    Navigator.pop(context);
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => Home()));
-
-                    break; // Stop the loop
+                  if (faDetails.isNotEmpty) {
+                    break;
                   }
                 }
-
-                if (emailFound) {
-                  break; // Stop the outer loop
+                if (faDetails.isNotEmpty) {
+                  break;
                 }
               }
 
-              if (!emailFound) {
+              for (String year in yearsList) {
+                for (String branch in branchList) {
+                  String adminFilePath = Uri.encodeComponent('$year/$branch/$year $branch ADMINS DETAILS');
+                  data = {'EMAIL ID': email};
+                  adminDetails = await reader.downloadedDetail(
+                      adminFilePath, '$year $branch ADMINS DETAILS', data);
+
+                  if (adminDetails.isNotEmpty) {
+                    break;
+                  }
+                }
+                if (adminDetails.isNotEmpty) {
+                  break;
+                }
+              }
+
+              DocumentReference docRef = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
+
+              if (faDetails.isNotEmpty && adminDetails.isEmpty) {
+                privilege = 'FACULTY ADVISOR';
+
+                docRef = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/${faDetails['BRANCH']}/${faDetails['STAFF ID']}');
+                faDetails.addAll({'UID': userId, 'FCMTOKEN': fcmToken!});
+                await firebaseService.uploadMapDetailsToDoc(
+                    docRef, faDetails, '${faDetails['STAFF ID']}');
+
+                sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', privilege);
+                redirectToHome(context);
+              } else if (faDetails.isEmpty && adminDetails.isNotEmpty) {
+                if (email == 'hodcse@klu.ac.in') {
+                  privilege = 'HOD';
+                } else {
+                  privilege = 'YEAR COORDINATOR';
+                }
+
+                docRef = FirebaseFirestore.instance.doc(
+                    'KLU/STAFFDETAILS/${adminDetails['BRANCH']}/${adminDetails['STAFF ID']}');
+                adminDetails.addAll({'UID': userId, 'FCMTOKEN': fcmToken!});
+                await firebaseService.uploadMapDetailsToDoc(
+                    docRef, adminDetails, '${adminDetails['STAFF ID']}');
+
+                sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', privilege);
+                redirectToHome(context);
+              } else if (faDetails.isNotEmpty && adminDetails.isNotEmpty) {
+                privilege = 'FACULTY ADVISOR AND YEAR COORDINATOR';
+
+                Map<String, dynamic> totalDetails = {};
+                totalDetails.addAll(faDetails);
+                adminDetails.addAll(adminDetails);
+
+                docRef = FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/${adminDetails['BRANCH']}/${adminDetails['STAFF ID']}');
+                adminDetails.addAll({'UID': userId, 'FCMTOKEN': fcmToken!});
+                await firebaseService.uploadMapDetailsToDoc(
+                    docRef, totalDetails, '${adminDetails['STAFF ID']}');
+
+                sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', privilege);
+                redirectToHome(context);
+              } else {
+                utils.showToastMessage('YOUR DETAILS NOT FOUND CONTACT ADMINISTRATOR', context);
                 signOutUser();
               }
-            } catch (e) {
-              // Handle exceptions, log them, or show an error message to the user
+            }catch(e){
+              print("Error: $e");
+              utils.showToastMessage('DETAILS NOT FOUND CONTACT ADMINISTRATOR', context);
               signOutUser();
             }
 
           }
         }else{
-          EasyLoading.dismiss();
-          GoogleSignIn().disconnect();
-          FirebaseAuth.instance.signOut();
           utils.showToastMessage('LOGIN WITH UNIVERSITY MAIL ID ONLY', context);
-          return;
+          signOutUser();
         }
       }
     } catch (error) {
-      EasyLoading.dismiss();
-      utils.showToastMessage('Unknown Error Occured during login', context);
-      print("Error signing in with Google: $error");
-      EasyLoading.dismiss();
-      return;
+      utils.showToastMessage('Error occurred during login', context);
+      signOutUser();
     }
   }
 
@@ -355,6 +394,13 @@ class MyHomePage extends StatelessWidget {
     GoogleSignIn().disconnect();
     FirebaseAuth.instance.signOut();
     return;
+  }
+
+  void redirectToHome(BuildContext context){
+
+    Navigator.pop(context);
+    Navigator.push(context, MaterialPageRoute(builder: (context) => Home()));
+
   }
 
 }
