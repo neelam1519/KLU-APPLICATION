@@ -138,7 +138,6 @@ class _LeaveDataState extends State<LeaveDetailsView> {
     );
   }
 
-
   Future<void> onAccept() async {
     print('onAccept: ');
     try {
@@ -160,7 +159,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       if(privilege=='FACULTY ADVISOR') {
 
         redirectingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$faYear/$faBranch/YEARCOORDINATOR/$faStream/LEAVEFORMS/PENDING');
-        print('onAccept ${redirectingRef.toString()}');
+        print('onAccept Redirecting ref ${redirectingRef.toString()}');
         field='FACULTY ADVISOR APPROVAL';
 
       }else if(privilege=='YEAR COORDINATOR' || privilege=='HOD'){
@@ -189,10 +188,11 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       listData.add(widget.leaveid);
 
       Map<String,dynamic>? values = await firebaseService.getValuesFromDocRef(leaveRef.doc('PENDING'),listData,utils.getEmail());
-      value=values![widget.leaveid];
-      print('onAccept ${value.toString()}');
+      print('onAccept values: ${values.toString()}');
+      value=FirebaseFirestore.instance.doc(values![widget.leaveid]);
+      print('onAccept value: ${value.path}');
 
-      Map<String,dynamic> data={widget.leaveid:value};
+      Map<String,dynamic> data={widget.leaveid:values[widget.leaveid]};
 
       await firebaseService.uploadMapDetailsToDoc(leaveRef.doc('ACCEPTED'), data,staffID!,utils.getEmail());
       await firebaseService.deleteField(leaveRef.doc('PENDING'), widget.leaveid);
@@ -202,12 +202,12 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       print("Updating Fields: ${data.toString()}");
       print('Redirecting Reference: ${redirectingRef.path}');
 
-      await firebaseService.uploadMapDetailsToDoc(value!.collection('LEAVEFORMS').doc(widget.leaveid),data,staffID!,'${studentLeaveDetails['REGISTRATION NUMBER']}@klu.ac.in');
+      await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVEFORMS').doc(widget.leaveid),data,staffID!,'${studentLeaveDetails['REGISTRATION NUMBER']}@klu.ac.in');
 
       data.clear();
-      data.addAll({widget.leaveid:value});
+      data.addAll({widget.leaveid:value.path});
       if(privilege !='HOSTEL WARDEN'){
-        await firebaseService.uploadMapDetailsToDoc(redirectingRef, data,staffID!,'${studentLeaveDetails['YEAR COORDINATOR EMAIL ID']}@klu.ac.in');
+        await firebaseService.uploadMapDetailsToDoc(redirectingRef, data,staffID!,'${studentLeaveDetails['YEAR COORDINATOR EMAIL ID']}');
       }
 
       Navigator.pop(context);
@@ -225,7 +225,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
     print('onReject: ');
     try {
       utils.showDefaultLoading();
-      DocumentReference? value;
+      String value;
       CollectionReference collectionReference = await utils.DocumentToCollection(lecturerReference);
       String field = '';
 
@@ -255,7 +255,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
 
       print('Getting document reference field value...');
       List<String> listData=[widget.leaveid];
-      Map<String,dynamic>? values = await firebaseService.getValuesFromDocRef(collectionReference.doc('PENDING'), listData,'${studentLeaveDetails['REGISTRATION NUMBER']}@klu.ac.in');
+      Map<String,dynamic>? values = await firebaseService.getValuesFromDocRef(collectionReference.doc('PENDING'), listData,utils.getEmail());
       value=values![widget.leaveid];
 
       data.clear();
@@ -264,18 +264,12 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       await firebaseService.uploadMapDetailsToDoc(collectionReference.doc('REJECTED'), data,staffID!,utils.getEmail());
 
       print('Deleting field...');
-      await firebaseService.deleteField(
-          collectionReference.doc('PENDING'), widget.leaveid
-      );
+      await firebaseService.deleteField(collectionReference.doc('PENDING'), widget.leaveid);
       data.clear();
-      data = {
-        field: 'REJECTED',
-        'VERIFICATION STATUS': 'REJECTED',
-      };
+      data = {field: 'REJECTED', 'VERIFICATION STATUS': 'REJECTED','$staffID TIMESTAMP': utils.getCurrentTimeStamp()};
       print('Uploading map details to doc...');
-      await firebaseService.uploadMapDetailsToDoc(
-          value!.collection('LEAVEFORMS').doc(widget.leaveid), data, staffID!
-          ,utils.getEmail());
+      DocumentReference valueRef=FirebaseFirestore.instance.doc(value);
+      await firebaseService.uploadMapDetailsToDoc(valueRef.collection('LEAVEFORMS').doc(widget.leaveid), data, staffID!,utils.getEmail());
       Navigator.pop(context);
       // Stop the loading dialog before navigating back
       EasyLoading.dismiss();
@@ -375,6 +369,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       studentLeaveDetails.addAll(leaveDetails);
 
       EasyLoading.dismiss();
+      print('StudentLeaveDetails: ${studentDetails.toString()}');
       return studentLeaveDetails;
 
     }catch(e){

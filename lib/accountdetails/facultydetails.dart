@@ -22,9 +22,9 @@ class _FacultyDetailsState extends State<FacultyDetails> {
     privilege = await sharedPreferences.getSecurePrefsValue('PRIVILEGE');
 
     if (privilege == 'STUDENT') {
-      data = ['FACULTY ADVISOR NAME', 'FACULTY ADVISOR STAFF ID', 'YEAR COORDINATOR NAME', 'YEAR COORDINATOR STAFF ID'];
+      data = ['FACULTY ADVISOR NAME', 'FACULTY ADVISOR STAFF ID', 'FACULTY ADVISOR EMAIL ID','YEAR COORDINATOR NAME', 'YEAR COORDINATOR STAFF ID','YEAR COORDINATOR EMAIL ID'];
     } else if (privilege == 'LECTURERS' || privilege == 'YEAR COORDINATOR' || privilege == 'HOD' || privilege == 'FACULTY ADVISOR' || privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
-      data = ['NAME', 'STAFF ID', 'YEAR', 'BRANCH'];
+      data = ['NAME', 'STAFF ID', 'YEAR', 'BRANCH','EMAIL ID'];
     }
   }
 

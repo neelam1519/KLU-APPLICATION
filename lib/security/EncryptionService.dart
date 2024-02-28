@@ -20,22 +20,33 @@ class EncryptionService {
 
 
   Future<Map<String, dynamic>> encryptData(String keySalt, Map<String, dynamic> data) async {
-    final encrypter = Encrypter(AES(await generateKey(keySalt), mode: AESMode.cbc, padding: "PKCS7"));
-    final keysToEncrypt = data.keys.toList();
-    final iv = IV.fromSecureRandom(16);
+    try {
+      final encrypter = Encrypter(AES(await generateKey(keySalt), mode: AESMode.cbc, padding: "PKCS7"));
+      final keysToEncrypt = data.keys.toList();
+      final iv = IV.fromSecureRandom(16);
 
-    Map<String, dynamic> encryptedData = {};
-    for (var key in keysToEncrypt) {
-      final value = data[key];
-      if (ExcludeKeys(key)) {
-        final encrypted = encrypter.encrypt(value, iv: iv);
-        encryptedData[key] = base64.encode(iv.bytes) + ":" + encrypted.base64;
-      } else {
-        encryptedData[key] = value; // Directly store value without encryption
+      Map<String, dynamic> encryptedData = {};
+      for (var key in keysToEncrypt) {
+        final value = data[key];
+        if (ExcludeKeys(key)) {
+          // Convert value to string if it's not already
+          final String stringValue = value.toString();
+          final encrypted = encrypter.encrypt(stringValue, iv: iv);
+          encryptedData[key] = (base64.encode(iv.bytes) + ":" + encrypted.base64);
+        } else {
+          // Convert value to string if it's not already
+          final String stringValue = value.toString();
+          encryptedData[key] = stringValue; // Store value as string
+        }
       }
+      return encryptedData;
+    } catch (error) {
+      print('Error encrypting data: $error');
+      return {}; // Return an empty map or handle the error as needed
     }
-    return encryptedData;
   }
+
+
 
   bool ExcludeKeys(String key) {
     final keysToExclude = ['FCMTOKEN', 'UID','REGISTRATION NUMBER']; // List of keys to exclude from encryption
@@ -50,6 +61,7 @@ class EncryptionService {
     for (var key in keysToDecrypt) {
       final encryptedValue = encryptedData[key];
       if (ExcludeKeys(key)) {
+        print('EncryptedValue: $key ${encryptedValue.toString()}');
         final ivAndEncrypted = encryptedValue.split(":");
         if (ivAndEncrypted.length != 2) {
           print("Error decrypting value for key: $key. Invalid format.");

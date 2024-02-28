@@ -134,8 +134,7 @@ class FirebaseService {
       // Check if the document exists
       if (snapshot.exists) {
         // Cast snapshot.data() to Map<String, dynamic>
-        Map<String, dynamic>? documentData =
-        snapshot.data() as Map<String, dynamic>?;
+        Map<String, dynamic>? documentData = snapshot.data() as Map<String, dynamic>?;
 
         // Create a map to store field names and values
         Map<String, dynamic> fieldValues = {};

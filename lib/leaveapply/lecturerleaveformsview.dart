@@ -771,17 +771,17 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
         String encryptedValue = entry.value; // Assuming value is stored as String
 
         Map<String, dynamic> data = {'VALUE': encryptedValue};
-        Map<String, dynamic> decryptedData = await encryptionService.decryptData(utils.getEmail(), data);
+        Map<String, dynamic> decryptedData = await encryptionService.decryptData("${utils.getEmail()}", data);
+        print('Decrypted Data: ${decryptedData.toString()}');
         List<String> splitValue=decryptedData['VALUE'].split('/');
-
+        print('SplitValue: ${splitValue.toString()}');
         DocumentReference detailsRef = FirebaseFirestore.instance.doc(decryptedData['VALUE']);
 
-        print('Key: $key   Reference: $detailsRef');
         DocumentReference leaveFormRef = detailsRef.collection('LEAVEFORMS').doc(key);
-
+        print('Key: $key   Reference: $leaveFormRef');
         // Retrieve data for the current entry
         Map<String, dynamic>? retrievedData = await firebaseService.getValuesFromDocRef(leaveFormRef, dataRequired,'${splitValue.last}@klu.ac.in');
-        print('RETRIVED DATA: ${retrievedData.toString()}');
+        print('RETRIEVED DATA: ${retrievedData.toString()}');
 
         retrievedDataMap[key] = retrievedData;
       }
