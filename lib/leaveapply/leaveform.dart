@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:intl/intl.dart';
+import 'package:klu_flutter/services/sendnotification.dart';
 import 'package:klu_flutter/utils/RealtimeDatabase.dart';
 import 'package:klu_flutter/utils/utils.dart';
 import '../utils/Firebase.dart';
@@ -124,13 +125,12 @@ class _LeaveFormState extends State<LeaveForm> {
     String? year=await secureStorage.getSecurePrefsValue("YEAR");
     String? branch=await secureStorage.getSecurePrefsValue("BRANCH");
     String? regNo=await secureStorage.getSecurePrefsValue("REGISTRATION NUMBER");
-    String? faID=await secureStorage.getSecurePrefsValue("FACULTY ADVISOR STAFF ID");
+    String? faStaffID=await secureStorage.getSecurePrefsValue("FACULTY ADVISOR STAFF ID");
     String? faName=await secureStorage.getSecurePrefsValue('FACULTY ADVISOR NAME');
     String? stream=await secureStorage.getSecurePrefsValue("STREAM");
     String? section=await secureStorage.getSecurePrefsValue("SECTION");
-    String? staffID=await secureStorage.getSecurePrefsValue('STAFF ID');
-    String? privilege=await secureStorage.getSecurePrefsValue('PRIVILEGE');
     String? faMailID=await secureStorage.getSecurePrefsValue('FACULTY ADVISOR EMAIL ID');
+    String? privilege=await secureStorage.getSecurePrefsValue('PRIVILEGE');
 
     try {
       await realtimeDatabase.incrementLeaveCount('KLU/LEAVE COUNT');
@@ -180,8 +180,8 @@ class _LeaveFormState extends State<LeaveForm> {
         return;
       }
 
-      String number = '+91${parentMobileNumber.trim()}';
-      print('toNumber: ${number}');
+      // String number = '+91${parentMobileNumber.trim()}';
+      // print('toNumber: ${number}');
 
       // twilioFlutter.sendSMS(
       //     toNumber : number,
@@ -189,21 +189,9 @@ class _LeaveFormState extends State<LeaveForm> {
 
       Map<String, dynamic> data = {};
 
-      data.addAll({
-        'LEAVE ID': leaveCount,
-        'REGISTRATION NUMBER': regNo,
-        'PARENTS MOBILE NUMBER': parentMobileNumber,
-        'STUDENT MOBILE NUMBER': studentMobileNumber,
-        'REASON': reason,
-        'START DATE': startDate,
-        'RETURN DATE': returnDate,
-        'FACULTY ADVISOR APPROVAL': 'PENDING',
-        'YEAR COORDINATOR APPROVAL': 'PENDING',
-        'HOSTEL WARDEN APPROVAL': 'PENDING',
-        'VERIFICATION STATUS': 'PENDING',
-        'HOSTEL NAME': 'BHARATHI MENS HOSTEL',
-        'HOSTEL FLOOR NUMBER': '2',
-        'HOSTEL ROOM NUMBER': '215'
+      data.addAll({'LEAVE ID': leaveCount, 'REGISTRATION NUMBER': regNo, 'PARENTS MOBILE NUMBER': parentMobileNumber, 'STUDENT MOBILE NUMBER': studentMobileNumber, 'REASON': reason,
+        'START DATE': startDate, 'RETURN DATE': returnDate, 'FACULTY ADVISOR APPROVAL': 'PENDING', 'YEAR COORDINATOR APPROVAL': 'PENDING', 'HOSTEL WARDEN APPROVAL': 'PENDING', 'VERIFICATION STATUS': 'PENDING',
+        'HOSTEL NAME': 'BHARATHI MENS HOSTEL', 'HOSTEL FLOOR NUMBER': '2', 'HOSTEL ROOM NUMBER': '215'
       });
 
       DocumentReference studentRef = FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
@@ -217,13 +205,22 @@ class _LeaveFormState extends State<LeaveForm> {
       DocumentReference classPendingRef = FirebaseFirestore.instance.doc('/KLU/CLASSROOMDETAILS/$year/$branch/$stream/$section/LEAVEFORMS/PENDING');
       print('classdetails: ${data.toString()}');
       await firebaseService.uploadMapDetailsToDoc(classPendingRef, data, regNo,faMailID!);
+      
+      DocumentReference lecturerRef=FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/$branch/$faStaffID');
+      List<String> lecturerFcmToken=['FCMTOKEN'];
+
+      Map<String, dynamic>? lecturerfcmtoken=await firebaseService.getValuesFromDocRef(lecturerRef, lecturerFcmToken, faMailID);
+      print('Lecturer Details: ${lecturerfcmtoken.toString()}');
+      Map<String,dynamic> notificationData={'YEAR':year,'BRANCH': branch,'PRIVILEGE':privilege};
+      sendPushMessage(recipientToken: lecturerfcmtoken!['FCMTOKEN'], title: 'Leave application', body: '$regNo applied for leave', additionalData: notificationData);
 
       //Navigator.of(context).pop();
-      Navigator.pop(context);
+      //Navigator.pop(context);
       EasyLoading.dismiss();
 
       utils.showToastMessage("The Leave Form is Sent to ${faName!.toUpperCase()} For approval", context);
     }catch(e){
+      EasyLoading.dismiss();
       print('onSubmitButton: $e');
     }
   }

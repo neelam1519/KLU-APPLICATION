@@ -210,7 +210,7 @@ class _UserAccountState extends State<UserAccount> {
 
     if (privilege == 'STUDENT') {
       regNo = await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
-    } else if (privilege == 'FACULTY ADVISOR' || privilege == 'HOD' || privilege == 'YEAR COORDINATOR' || privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR') {
+    } else if (privilege == 'FACULTY ADVISOR' || privilege == 'HOD' || privilege == 'YEAR COORDINATOR' || privilege == 'FACULTY ADVISOR AND YEAR COORDINATOR'|| privilege=='HOSTEL WARDEN') {
       regNo = await sharedPreferences.getSecurePrefsValue('STAFF ID');
     }
   }

@@ -18,8 +18,14 @@ class FirebaseService {
 
   Future<void> uploadMapDetailsToDoc(DocumentReference documentReference, Map<String, dynamic> data, String ID,String keySalt) async {
     try {
-      Map<String,dynamic> encryptedData=await encryptionService.encryptData(keySalt, data);
-      print('Uploading Data: ${encryptedData.toString()}');
+      Map<String, dynamic> encryptedData={};
+      if(ID!='review') {
+        Map<String, dynamic> encryptedData = await encryptionService
+            .encryptData(keySalt, data);
+        print('Uploading Data: ${encryptedData.toString()}');
+      }else{
+        encryptedData=data;
+      }
 
       await documentReference.set({
         ...encryptedData, // Include the document data

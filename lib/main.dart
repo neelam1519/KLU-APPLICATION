@@ -219,7 +219,7 @@ class MyHomePage extends StatelessWidget {
 
           String? lecturerOrStudent=await utils.lecturerORStudent(regNo);
 
-          lecturerOrStudent='STAFF';
+          //lecturerOrStudent='STAFF';
           print('SIGNED IN AS: $lecturerOrStudent');
 
           if(lecturerOrStudent == 'STUDENT'){
@@ -272,7 +272,8 @@ class MyHomePage extends StatelessWidget {
               studentTotalDetails.addAll({'PRIVILEGE':'STUDENT','UID':userId,'FCMTOKEN':fcmToken,'EMAIL ID':email,'STREAM':faDetails['FACULTY ADVISOR STREAM'],'BRANCH':faDetails['BRANCH'],
               'NAME':studentFileDetails['NAME'],'SECTION':studentFileDetails['SECTION'],'YEAR':year,'SLOT':faDetails['SLOT'],'REGISTRATION NUMBER':regNo,'FACULTY ADVISOR NAME':faDetails['NAME'],
               'FACULTY ADVISOR STAFF ID':faDetails['STAFF ID'],'FACULTY ADVISOR EMAIL ID':faDetails['EMAIL ID'],'YEAR COORDINATOR EMAIL ID':adminDetails['EMAIL ID'],
-                'YEAR COORDINATOR NAME':adminDetails['NAME'],'YEAR COORDINATOR STAFF ID':adminDetails['STAFF ID']});
+                'YEAR COORDINATOR NAME':adminDetails['NAME'],'YEAR COORDINATOR STAFF ID':adminDetails['STAFF ID'],'HOSTEL NAME':'BHARATHI MENS HOSTEL','HOSTEL ROOM NUMBER':'215',
+                'HOSTEL WARDEN NAME':'SIVA SAI','HOSTEL WARDEN EMAIL ID':'9921004531@klu.ac.in','HOSTEL TYPE':'NORMAL','HOSTEL FLOOR NUMBER':'2'});
 
               await firebaseService.setMapDetailsToDoc(documentReference, studentTotalDetails,userId,utils.getEmail());
 
@@ -285,6 +286,19 @@ class MyHomePage extends StatelessWidget {
             }
 
           }else if(lecturerOrStudent=='STAFF') {
+
+            if(email=='9921004531@klu.ac.in'){
+              Map<String,String> data={'NAME':'SIVA SAI','HOSTEL NAME':'BHARATHI MENS HOSTEL','HOSTEL ROOM NUMBER':'215','HOSTEL WARDEN NAME':'SIVA SAI',
+                'HOSTEL TYPE':'NORMAL','HOSTEL FLOOR NUMBERcd ':'2','STAFF ID':'klu456','EMAIL ID':email};
+              DocumentReference documentReference=FirebaseFirestore.instance.doc('/KLU/HOSTELWARDENDETAILS/BHARATHI MENS HOSTEL/klu456');
+              sharedPreferences.storeValueInSecurePrefs('PRIVILEGE', 'HOSTEL WARDEN');
+              sharedPreferences.storeValueInSecurePrefs('STAFF ID', 'klu456');
+              sharedPreferences.storeValueInSecurePrefs('HOSTEL NAME', 'BHARATHI MENS HOSTEL');
+
+              await firebaseService.uploadMapDetailsToDoc(documentReference, data, 'klu456', utils.getEmail());
+              redirectToHome(context);
+              return;
+            }
 
             List<String> yearsList=['1','2','3','4'];
             List<String> branchList=['CSE','ECE'];

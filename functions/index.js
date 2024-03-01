@@ -7,9 +7,12 @@ exports.sendNotificationOnDocumentCreate = functions.firestore
     .document("KLU/STUDENTDETAILS/{year}/{regNo}/LEAVEFORMS/{leaveId}")
     .onCreate(async (snapshot, context) => {
       try {
-        const data = snapshot.data(); // Access document data
-        const regNo = data["REGISTRATION NUMBER"];
+        const encryptedData = snapshot.data(); // Access document data
+        const regNo = encryptedData["REGISTRATION NUMBER"];
         const year = context.params.year;
+
+        const data = await decryptData(`${regNo}@klu.ac.in`, encryptedData);
+
         const studentDetails = await admin.firestore().doc(`KLU/STUDENTDETAILS/${year}/${regNo}`).get();
         if (!studentDetails.exists) {
           throw new Error(`Student details not found for year: ${year} and regNo: ${regNo}`);
@@ -19,7 +22,7 @@ exports.sendNotificationOnDocumentCreate = functions.firestore
 
         console.log(`STUDENT REFERENCE: ${staffID}`);
 
-        const faDetails = await admin.firestore().doc(`KLU/STAFFDETAILS/LECTURERS/${staffID}`).get();
+        const faDetails = await admin.firestore().doc(`KLU/STAFFDETAILS/${branch}/${staffID}`).get();
         if (!faDetails.exists) {
           throw new Error(`Faculty advisor details not found for branch: ${branch} and staffID: ${staffID}`);
         }
@@ -145,5 +148,46 @@ exports.sendNotificationOnDataUpdate = functions.firestore
         return null;
       }
     });
+
+// Import necessary libraries
+const crypto = require("crypto");
+
+// Function to decrypt data using AES encryption with CBC mode
+function decryptData(keySalt, encryptedData) {
+  // Generate key using keySalt
+  const key = generateKey(keySalt);
+
+  // Initialize decipher using AES encryption with CBC mode
+  const decipher = crypto.createDecipheriv("aes-256-cbc", key, Buffer.alloc(16));
+
+  // Decrypt each encrypted value in encryptedData
+  const decryptedData = {};
+  for (const key in encryptedData) {
+    const encryptedValue = encryptedData[key];
+    if (excludeKeys(key)) {
+      const [ivBase64, encryptedValueBase64] = encryptedValue.split(":");
+      const iv = Buffer.from(ivBase64, "base64");
+      const encrypted = Buffer.from(encryptedValueBase64, "base64");
+      const decryptedValue = decipher.update(encrypted, null, "utf8") + decipher.final("utf8");
+      decryptedData[key] = decryptedValue;
+    } else {
+      decryptedData[key] = encryptedValue; // Keep value as it is without decryption
+    }
+  }
+  return decryptedData;
+}
+
+// Function to check if key should be excluded from decryption
+function excludeKeys(key) {
+  const keysToExclude = ['FCMTOKEN', 'UID', 'REGISTRATION NUMBER']; // List of keys to exclude from encryption
+  return !keysToExclude.includes(key);
+}
+
+// Function to generate a unique key for a user based on their email
+function generateKey(email) {
+  const salt = Buffer.from(email, "utf8"); // Convert email to bytes
+  const hash = crypto.createHash("sha256").update(salt).digest();
+  return hash.slice(0, 32); // Use first 32 bytes of hash as key
+}
 
 

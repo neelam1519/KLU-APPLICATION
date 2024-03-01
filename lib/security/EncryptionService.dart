@@ -46,8 +46,6 @@ class EncryptionService {
     }
   }
 
-
-
   bool ExcludeKeys(String key) {
     final keysToExclude = ['FCMTOKEN', 'UID','REGISTRATION NUMBER']; // List of keys to exclude from encryption
     return !keysToExclude.contains(key);
@@ -61,7 +59,6 @@ class EncryptionService {
     for (var key in keysToDecrypt) {
       final encryptedValue = encryptedData[key];
       if (ExcludeKeys(key)) {
-        print('EncryptedValue: $key ${encryptedValue.toString()}');
         final ivAndEncrypted = encryptedValue.split(":");
         if (ivAndEncrypted.length != 2) {
           print("Error decrypting value for key: $key. Invalid format.");

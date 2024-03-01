@@ -7,9 +7,10 @@ import 'package:klu_flutter/security/EncryptionService.dart';
 import 'package:klu_flutter/utils/RealtimeDatabase.dart';
 import 'package:klu_flutter/utils/loadingdialog.dart';
 import 'package:klu_flutter/utils/utils.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../utils/Firebase.dart';
 import '../utils/shraredprefs.dart';
-import 'lecturerleaveformsview.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class LeaveDetailsView extends StatefulWidget {
   final String leaveid;
@@ -80,25 +81,58 @@ class _LeaveDataState extends State<LeaveDetailsView> {
                 }
                 return Column(
                   children: [
-                    RichText(
-                      text: TextSpan(
-                        style: TextStyle(fontSize: 16, color: Colors.black),
+                    // If the detailValue is a mobile number, show IconButton
+                    if (isMobileNumber(detailValue))
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          TextSpan(
-                            text: '$detailKey: ',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                          RichText(
+                            text: TextSpan(
+                              style: TextStyle(fontSize: 16, color: Colors.black),
+                              children: [
+                                TextSpan(
+                                  text: '$detailKey: ',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                TextSpan(
+                                  text: '$detailValue',
+                                ),
+                              ],
+                            ),
                           ),
-                          TextSpan(
-                            text: '$detailValue',
+                          IconButton(
+                            icon: Icon(Icons.phone),
+                            onPressed: () {
+                              _makePhoneCall(detailValue);
+                            },
                           ),
                         ],
                       ),
-                    ),
-                    SizedBox(height: 13), // Add some space between each RichText widget
+                    // If the detailValue is not a mobile number, show RichText
+                    if (!isMobileNumber(detailValue))
+                      Column(
+                        children: [
+                          RichText(
+                            text: TextSpan(
+                              style: TextStyle(fontSize: 16, color: Colors.black),
+                              children: [
+                                TextSpan(
+                                  text: '$detailKey: ',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                TextSpan(
+                                  text: '$detailValue',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    SizedBox(height: 15), // Add some space between each RichText widget
                   ],
                 );
               }).toList(),
-              SizedBox(height: 20), // Add space between details and buttons
+              //SizedBox(height: 20), // Add space between details and buttons
               // Row with three buttons, each with dynamic visibility
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -138,6 +172,40 @@ class _LeaveDataState extends State<LeaveDetailsView> {
     );
   }
 
+  bool isMobileNumber(String value) {
+    // You can implement your logic to check if the value is a mobile number
+    // For example, you can use regular expressions to validate the format
+    // Here, I'm just checking if the value contains only digits and its length is 10
+    return RegExp(r'^[0-9]+$').hasMatch(value) && value.length == 10;
+  }
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    var status = await Permission.phone.status;
+    print('Initial Permission Status: $status'); // Add this line
+    if (status.isGranted) {
+      String url = 'tel:$phoneNumber';
+      if (await canLaunch(url)) {
+        await launch(url);
+      } else {
+        throw 'Could not launch $url';
+      }
+    } else if (status.isDenied) {
+      var permissionStatus = await Permission.phone.request();
+      print('Permission Status after request: $permissionStatus'); // Add this line
+      if (permissionStatus.isGranted) {
+        String url = 'tel:$phoneNumber';
+        if (await canLaunch(url)) {
+          await launch(url);
+        } else {
+          throw 'Could not launch $url';
+        }
+      } else {
+        // Handle permission denied or show a dialog to inform the user
+      }
+    }
+  }
+
+
   Future<void> onAccept() async {
     print('onAccept: ');
     try {
@@ -147,34 +215,39 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       DocumentReference redirectingRef=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
       DocumentReference? value;
       String field='';
-      String? faYear = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR YEAR');
-      String? faStream = await sharedPreferences.getSecurePrefsValue('FACULTY ADVISOR STREAM');
-      String? faBranch = await sharedPreferences.getSecurePrefsValue('BRANCH');
-      String? hostelName='BHARATHI MENS HOSTEL';
-      String? hostelFloor='2';
-      String? hostelType='NORMAL';
+      String? faYear = studentLeaveDetails['YEAR'];
+      String? faStream =studentLeaveDetails['STREAM'];
+      String? faBranch = studentLeaveDetails['BRANCH'];
+      String? hostelName=studentLeaveDetails['HOSTEL NAME'];
+      String? hostelType=studentLeaveDetails['HOSTEL TYPE'];
+      String? hostelFloor=studentLeaveDetails['HOSTEL FLOOR NUMBER'];
 
       String verified='PENDING';
+      String salt='';
 
       if(privilege=='FACULTY ADVISOR') {
 
         redirectingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$faYear/$faBranch/YEARCOORDINATOR/$faStream/LEAVEFORMS/PENDING');
         print('onAccept Redirecting ref ${redirectingRef.toString()}');
         field='FACULTY ADVISOR APPROVAL';
+        salt=studentLeaveDetails['YEAR COORDINATOR EMAIL ID'];
 
       }else if(privilege=='YEAR COORDINATOR' || privilege=='HOD'){
         redirectingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/$hostelFloor/PENDING');
         print('onAccept ${redirectingRef.toString()}');
         field='YEAR COORDINATOR APPROVAL';
+        salt=studentLeaveDetails['HOSTEL WARDEN EMAIL ID'];
       }else if(privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
-        if(widget.type=='SECTION'){
+          if(widget.type=='SECTION'){
           redirectingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$faYear/$faBranch/YEARCOORDINATOR/$faStream/LEAVEFORMS/PENDING');
           print('onAccept ${redirectingRef.toString()}');
           field='FACULTY ADVISOR APPROVAL';
+          salt=studentLeaveDetails['YEAR COORDINATOR EMAIL ID'];
         }else if(widget.type=='YEAR COORDINATOR'){
-          redirectingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/$hostelFloor/PENDING');
+          redirectingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/${hostelName}/$hostelType/$hostelFloor/PENDING');
           print('onAccept ${redirectingRef.toString()}');
           field='YEAR COORDINATOR APPROVAL';
+          salt=studentLeaveDetails['HOSTEL WARDEN EMAIL ID'];
         }
       }else if(privilege=='HOSTEL WARDEN'){
         field='HOSTEL WARDEN APPROVAL';
@@ -207,7 +280,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       data.clear();
       data.addAll({widget.leaveid:value.path});
       if(privilege !='HOSTEL WARDEN'){
-        await firebaseService.uploadMapDetailsToDoc(redirectingRef, data,staffID!,'${studentLeaveDetails['YEAR COORDINATOR EMAIL ID']}');
+        await firebaseService.uploadMapDetailsToDoc(redirectingRef, data,staffID!,salt);
       }
 
       Navigator.pop(context);
@@ -215,7 +288,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       EasyLoading.dismiss();
     } catch (e) {
       utils.exceptions(e,'onAccept');
-      utils.showToastMessage('Error is occured try after some time', context);
+      utils.showToastMessage('Error is occurred try after some time', context);
       EasyLoading.dismiss();
       // You might want to add proper error handling here, depending on your application's requirements
     }
@@ -269,7 +342,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       data = {field: 'REJECTED', 'VERIFICATION STATUS': 'REJECTED','$staffID TIMESTAMP': utils.getCurrentTimeStamp()};
       print('Uploading map details to doc...');
       DocumentReference valueRef=FirebaseFirestore.instance.doc(value);
-      await firebaseService.uploadMapDetailsToDoc(valueRef.collection('LEAVEFORMS').doc(widget.leaveid), data, staffID!,utils.getEmail());
+      await firebaseService.uploadMapDetailsToDoc(valueRef.collection('LEAVEFORMS').doc(widget.leaveid), data, staffID!, '${studentLeaveDetails['REGISTRATION NUMBER']}@klu.ac.in');
       Navigator.pop(context);
       // Stop the loading dialog before navigating back
       EasyLoading.dismiss();

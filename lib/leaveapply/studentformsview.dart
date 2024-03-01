@@ -62,15 +62,17 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
             return ListView.builder(
               itemCount: leaveForms.length,
               itemBuilder: (context, index) {
-                EasyLoading.dismiss();
-                return FutureBuilder<void>(
+                return FutureBuilder<Widget?>(
                   future: retrieveAndBuildLeaveCard(leaveForms[index]),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return SizedBox(); // Placeholder widget while waiting for decryption
-                    } else {
+                    } else if (snapshot.data != null) {
                       // Return the leave card built from decrypted data
-                      return snapshot.data as Widget;
+                      return snapshot.data!;
+                    } else {
+                      // Handle the case where data is null, you can return a placeholder widget
+                      return SizedBox();
                     }
                   },
                 );
@@ -95,12 +97,12 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
     );
   }
 
-  Future<Widget> retrieveAndBuildLeaveCard(DocumentSnapshot leaveforms) async {
+  Future<Widget?> retrieveAndBuildLeaveCard(DocumentSnapshot leaveforms) async {
     final cardData = leaveforms.data() as Map<String, dynamic>;
     cardData.remove('verificationID');
     Map<String, dynamic> encryptedData = await encryptionService.decryptData(utils.getEmail(), cardData);
     print('Decrypted LeaveData: ${encryptedData.toString()}');
-    return buildLeaveCard(encryptedData);
+    return encryptedData != null ? buildLeaveCard(encryptedData) : null;
   }
 
   Widget buildLeaveCard(Map<String, dynamic> cardData) {
