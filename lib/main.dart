@@ -273,7 +273,7 @@ class MyHomePage extends StatelessWidget {
               'NAME':studentFileDetails['NAME'],'SECTION':studentFileDetails['SECTION'],'YEAR':year,'SLOT':faDetails['SLOT'],'REGISTRATION NUMBER':regNo,'FACULTY ADVISOR NAME':faDetails['NAME'],
               'FACULTY ADVISOR STAFF ID':faDetails['STAFF ID'],'FACULTY ADVISOR EMAIL ID':faDetails['EMAIL ID'],'YEAR COORDINATOR EMAIL ID':adminDetails['EMAIL ID'],
                 'YEAR COORDINATOR NAME':adminDetails['NAME'],'YEAR COORDINATOR STAFF ID':adminDetails['STAFF ID'],'HOSTEL NAME':'BHARATHI MENS HOSTEL','HOSTEL ROOM NUMBER':'215',
-                'HOSTEL WARDEN NAME':'SIVA SAI','HOSTEL WARDEN EMAIL ID':'9921004531@klu.ac.in','HOSTEL TYPE':'NORMAL','HOSTEL FLOOR NUMBER':'2'});
+                'HOSTEL WARDEN NAME':'SIVA SAI','HOSTEL WARDEN EMAIL ID':'9921004531@klu.ac.in','HOSTEL TYPE':'NORMAL','HOSTEL FLOOR NUMBER':'2','HOSTEL WARDEN STAFF ID':'klu456'});
 
               await firebaseService.setMapDetailsToDoc(documentReference, studentTotalDetails,userId,utils.getEmail());
 

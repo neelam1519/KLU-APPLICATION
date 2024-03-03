@@ -20,8 +20,8 @@ class FirebaseService {
     try {
       Map<String, dynamic> encryptedData={};
       if(ID!='review') {
-        Map<String, dynamic> encryptedData = await encryptionService
-            .encryptData(keySalt, data);
+        encryptedData = await encryptionService.encryptData(keySalt, data);
+        print('Uploading Reference: ${documentReference.path}');
         print('Uploading Data: ${encryptedData.toString()}');
       }else{
         encryptedData=data;
@@ -132,15 +132,17 @@ class FirebaseService {
       }
     }
 
-  Future<Map<String, dynamic>?> getValuesFromDocRef(DocumentReference documentReference, List<String> requiredFieldNames,String salt) async {
+  Future<Map<String, dynamic>?> getValuesFromDocRef(DocumentReference documentReference, List<String> requiredFieldNames, String salt) async {
     try {
       // Get the document snapshot
       DocumentSnapshot snapshot = await documentReference.get();
+      print('getValuesFromDocRef DocumentReference: ${documentReference.path}');
 
       // Check if the document exists
       if (snapshot.exists) {
         // Cast snapshot.data() to Map<String, dynamic>
         Map<String, dynamic>? documentData = snapshot.data() as Map<String, dynamic>?;
+        print('Document Data: ${documentData.toString()}');
 
         // Create a map to store field names and values
         Map<String, dynamic> fieldValues = {};
@@ -152,16 +154,18 @@ class FirebaseService {
             // Retrieve the value of the specified field
             dynamic fieldValue = snapshot.get(FieldPath([field]));
             // Add the field name and value to the map
+            print('Field Value: ${fieldValue.toString()}');
             fieldValues[field] = fieldValue;
           } else {
             // Field doesn't exist in the document
-            fieldValues[field] = null;
+            fieldValues[field] = '';
           }
         }
-        fieldValues=await encryptionService.decryptData(salt, fieldValues);
+        fieldValues = await encryptionService.decryptData(salt, fieldValues);
         return fieldValues;
       } else {
         // Document doesn't exist
+        print('Document does not exists');
         return null;
       }
     } catch (e) {
@@ -170,6 +174,7 @@ class FirebaseService {
       return null;
     }
   }
+
 
   Future<void> deleteFieldInCollection(CollectionReference collectionReference, String field) async {
     try {

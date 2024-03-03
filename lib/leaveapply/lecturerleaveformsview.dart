@@ -787,8 +787,6 @@ class _LecturerDataState extends State<LecturerLeaveFormsView> {
           retrievedDataMap[key] = retrievedData;
         }
       }
-      // Decrypt the retrieved data
-      print('SALT: ${retrievedDataMap['REGISTRATION NUMBER']}@klu.ac.in');
 
       // Output retrieved data
       for (MapEntry<String, dynamic> entry in retrievedDataMap.entries) {

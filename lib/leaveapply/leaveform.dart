@@ -187,6 +187,17 @@ class _LeaveFormState extends State<LeaveForm> {
       //     toNumber : number,
       //     messageBody : 'This is from MyUniv leave applied');
 
+      DocumentReference lecturerRef=FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/$branch/$faStaffID');
+      List<String> lecturerFcmToken=['FCMTOKEN'];
+
+      Map<String, dynamic>? lecturerfcmtoken=await firebaseService.getValuesFromDocRef(lecturerRef, lecturerFcmToken, faMailID!);
+      if(lecturerfcmtoken==null){
+        utils.showToastMessage('Your FACULTY ADVISOR is not registered', context);
+        EasyLoading.dismiss();
+        return;
+      }
+      print('Lecturer Details: ${lecturerfcmtoken.toString()}');
+
       Map<String, dynamic> data = {};
 
       data.addAll({'LEAVE ID': leaveCount, 'REGISTRATION NUMBER': regNo, 'PARENTS MOBILE NUMBER': parentMobileNumber, 'STUDENT MOBILE NUMBER': studentMobileNumber, 'REASON': reason,
@@ -196,23 +207,16 @@ class _LeaveFormState extends State<LeaveForm> {
 
       DocumentReference studentRef = FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/$year/$regNo');
       await firebaseService.setMapDetailsToDoc(studentRef.collection('LEAVEFORMS').doc(leaveCount), data, regNo!,utils.getEmail());
-
       print('studentRef: ${studentRef.path}');
 
       data.clear();
       data.addAll({leaveCount: 'KLU/STUDENTDETAILS/$year/$regNo'});
 
       DocumentReference classPendingRef = FirebaseFirestore.instance.doc('/KLU/CLASSROOMDETAILS/$year/$branch/$stream/$section/LEAVEFORMS/PENDING');
-      print('classdetails: ${data.toString()}');
-      await firebaseService.uploadMapDetailsToDoc(classPendingRef, data, regNo,faMailID!);
-      
-      DocumentReference lecturerRef=FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/$branch/$faStaffID');
-      List<String> lecturerFcmToken=['FCMTOKEN'];
+      await firebaseService.uploadMapDetailsToDoc(classPendingRef, data, regNo,faMailID);
 
-      Map<String, dynamic>? lecturerfcmtoken=await firebaseService.getValuesFromDocRef(lecturerRef, lecturerFcmToken, faMailID);
-      print('Lecturer Details: ${lecturerfcmtoken.toString()}');
       Map<String,dynamic> notificationData={'YEAR':year,'BRANCH': branch,'PRIVILEGE':privilege};
-      sendPushMessage(recipientToken: lecturerfcmtoken!['FCMTOKEN'], title: 'Leave application', body: '$regNo applied for leave', additionalData: notificationData);
+      sendPushMessage(recipientToken: lecturerfcmtoken['FCMTOKEN'] ?? '', title: 'Leave application', body: '$regNo applied for leave', additionalData: notificationData);
 
       //Navigator.of(context).pop();
       //Navigator.pop(context);

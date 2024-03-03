@@ -313,9 +313,6 @@ class _HomeState extends State<Home> {
         print('Failed to get fcmToken.');
         return;
       }
-      Map<String,dynamic> additionalData={'data':'1'};
-      sendPushMessage(recipientToken: token, title: 'Notification Title', body: 'Notification Body', additionalData: additionalData);
-
       // Determine the document reference based on user privilege
       DocumentReference documentReference;
       switch (privilege) {

@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:googleapis/apigeeregistry/v1.dart';
 import 'package:klu_flutter/leaveapply/studentformsview.dart';
 import 'package:klu_flutter/security/EncryptionService.dart';
+import 'package:klu_flutter/services/sendnotification.dart';
 import 'package:klu_flutter/utils/RealtimeDatabase.dart';
 import 'package:klu_flutter/utils/loadingdialog.dart';
 import 'package:klu_flutter/utils/utils.dart';
@@ -82,7 +82,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
                 return Column(
                   children: [
                     // If the detailValue is a mobile number, show IconButton
-                    if (isMobileNumber(detailValue))
+                    if (utils.isValidMobileNumber(detailValue))
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -109,7 +109,7 @@ class _LeaveDataState extends State<LeaveDetailsView> {
                         ],
                       ),
                     // If the detailValue is not a mobile number, show RichText
-                    if (!isMobileNumber(detailValue))
+                    if (!utils.isValidMobileNumber(detailValue))
                       Column(
                         children: [
                           RichText(
@@ -172,13 +172,6 @@ class _LeaveDataState extends State<LeaveDetailsView> {
     );
   }
 
-  bool isMobileNumber(String value) {
-    // You can implement your logic to check if the value is a mobile number
-    // For example, you can use regular expressions to validate the format
-    // Here, I'm just checking if the value contains only digits and its length is 10
-    return RegExp(r'^[0-9]+$').hasMatch(value) && value.length == 10;
-  }
-
   Future<void> _makePhoneCall(String phoneNumber) async {
     var status = await Permission.phone.status;
     print('Initial Permission Status: $status'); // Add this line
@@ -214,7 +207,6 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       CollectionReference leaveRef=await utils.DocumentToCollection(lecturerReference);
       DocumentReference redirectingRef=FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
       DocumentReference? value;
-      String field='';
       String? faYear = studentLeaveDetails['YEAR'];
       String? faStream =studentLeaveDetails['STREAM'];
       String? faBranch = studentLeaveDetails['BRANCH'];
@@ -224,93 +216,128 @@ class _LeaveDataState extends State<LeaveDetailsView> {
 
       String verified='PENDING';
       String salt='';
+      String notificationStaffID='';
+      DocumentReference notificationReference=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/CSE/99210041602');
 
+      print('PRIVILEGE: ${privilege}');
       if(privilege=='FACULTY ADVISOR') {
 
         redirectingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$faYear/$faBranch/YEARCOORDINATOR/$faStream/LEAVEFORMS/PENDING');
-        print('onAccept Redirecting ref ${redirectingRef.toString()}');
-        field='FACULTY ADVISOR APPROVAL';
         salt=studentLeaveDetails['YEAR COORDINATOR EMAIL ID'];
+        notificationStaffID=studentLeaveDetails['YEAR COORDINATOR STAFF ID'];
+        notificationReference=FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/${studentLeaveDetails['BRANCH']}/$notificationStaffID');
+        print('FA not: ${notificationReference.toString()}');
 
       }else if(privilege=='YEAR COORDINATOR' || privilege=='HOD'){
+
         redirectingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/$hostelName/$hostelType/$hostelFloor/PENDING');
-        print('onAccept ${redirectingRef.toString()}');
-        field='YEAR COORDINATOR APPROVAL';
         salt=studentLeaveDetails['HOSTEL WARDEN EMAIL ID'];
+        notificationStaffID=studentLeaveDetails['HOSTEL WARDEN STAFF ID'];
+        notificationReference=FirebaseFirestore.instance.doc('KLU/HOSTELWARDENDETAILS/$hostelName/$notificationStaffID');
+
       }else if(privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
           if(widget.type=='SECTION'){
+
           redirectingRef = FirebaseFirestore.instance.doc('/KLU/ADMINS/$faYear/$faBranch/YEARCOORDINATOR/$faStream/LEAVEFORMS/PENDING');
-          print('onAccept ${redirectingRef.toString()}');
-          field='FACULTY ADVISOR APPROVAL';
           salt=studentLeaveDetails['YEAR COORDINATOR EMAIL ID'];
-        }else if(widget.type=='YEAR COORDINATOR'){
+          privilege='FACULTY ADVISOR';
+          notificationStaffID=studentLeaveDetails['HOSTEL WARDEN STAFF ID'];
+          notificationReference=FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/${studentLeaveDetails['BRANCH']}/$notificationStaffID');
+
+          }else if(widget.type=='YEAR COORDINATOR'){
+
           redirectingRef = FirebaseFirestore.instance.doc('/KLU/HOSTELS/${hostelName}/$hostelType/$hostelFloor/PENDING');
-          print('onAccept ${redirectingRef.toString()}');
-          field='YEAR COORDINATOR APPROVAL';
           salt=studentLeaveDetails['HOSTEL WARDEN EMAIL ID'];
-        }
+          privilege='YEAR COORDINATOR';
+          notificationStaffID=studentLeaveDetails['HOSTEL WARDEN STAFF ID'];
+          notificationReference=FirebaseFirestore.instance.doc('KLU/HOSTELWARDENDETAILS/$hostelName/$notificationStaffID');
+
+          }
       }else if(privilege=='HOSTEL WARDEN'){
-        field='HOSTEL WARDEN APPROVAL';
         verified='APPROVED';
       }
+
+      print('Leave Reference: ${leaveRef.toString()}');
+      print('Redirecting Reference: ${redirectingRef.toString()}');
 
       await realtimeDatabase.incrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/ACCEPTED');
       await realtimeDatabase.decrementLeaveCount('/KLU/${utils.getTime()}/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['BRANCH']}/${studentLeaveDetails['STREAM']}/${studentLeaveDetails['SECTION']}/PENDING');
 
-      List<String> listData=[];
-      listData.add(widget.leaveid);
 
-      Map<String,dynamic>? values = await firebaseService.getValuesFromDocRef(leaveRef.doc('PENDING'),listData,utils.getEmail());
-      print('onAccept values: ${values.toString()}');
-      value=FirebaseFirestore.instance.doc(values![widget.leaveid]);
-      print('onAccept value: ${value.path}');
+      value=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['REGISTRATION NUMBER']}');
 
-      Map<String,dynamic> data={widget.leaveid:values[widget.leaveid]};
-
+      Map<String,dynamic> data={widget.leaveid:value.path};
       await firebaseService.uploadMapDetailsToDoc(leaveRef.doc('ACCEPTED'), data,staffID!,utils.getEmail());
       await firebaseService.deleteField(leaveRef.doc('PENDING'), widget.leaveid);
 
       data.clear();
-      data={field:'APPROVED','VERIFICATION STATUS':verified,'$staffID TIMESTAMP': utils.getCurrentTimeStamp()};
-      print("Updating Fields: ${data.toString()}");
-      print('Redirecting Reference: ${redirectingRef.path}');
-
+      data={'${privilege} APPROVAL':'APPROVED','VERIFICATION STATUS':verified,'$staffID TIMESTAMP': utils.getCurrentTimeStamp()};
       await firebaseService.uploadMapDetailsToDoc(value.collection('LEAVEFORMS').doc(widget.leaveid),data,staffID!,'${studentLeaveDetails['REGISTRATION NUMBER']}@klu.ac.in');
+
+      List<String> lecturerFcmToken=['FCMTOKEN'];
+      print('NotificationReference: ${notificationReference.toString()}');
+      Map<String, dynamic>? lecturerfcmtoken=await firebaseService.getValuesFromDocRef(notificationReference, lecturerFcmToken, utils.getEmail()) ?? {'FCMTOKEN':''};
+      print('Lecturer FCM TOKEN: ${lecturerfcmtoken.toString()}');
+      Map<String,String> additionalNotificationData={};
 
       data.clear();
       data.addAll({widget.leaveid:value.path});
       if(privilege !='HOSTEL WARDEN'){
         await firebaseService.uploadMapDetailsToDoc(redirectingRef, data,staffID!,salt);
+        print('Sending Notification');
+        sendPushMessage(recipientToken: lecturerfcmtoken['FCMTOKEN'], title: 'Leave Applications', body: '${studentLeaveDetails['REGISTRATION NUMBER']} $privilege APPROVED', additionalData: additionalNotificationData);
       }
 
-      Navigator.pop(context);
+      sendPushMessage(recipientToken: studentLeaveDetails['FCMTOKEN'], title: 'Leave Applications', body: '${widget.leaveid} $privilege APPROVED', additionalData: additionalNotificationData);
 
+      Navigator.pop(context);
       EasyLoading.dismiss();
     } catch (e) {
       utils.exceptions(e,'onAccept');
-      utils.showToastMessage('Error is occurred try after some time', context);
+      utils.showToastMessage('Error occurred try after some time', context);
       EasyLoading.dismiss();
       // You might want to add proper error handling here, depending on your application's requirements
     }
   }
 
+
   Future<void> onReject() async {
     print('onReject: ');
     try {
       utils.showDefaultLoading();
-      String value;
+      String? hostelName=studentLeaveDetails['HOSTEL NAME'];
+      DocumentReference value;
       CollectionReference collectionReference = await utils.DocumentToCollection(lecturerReference);
       String field = '';
+      String notificationStaffID='';
+      DocumentReference notificationReference=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/CSE/99210041602');
 
       if(privilege=='FACULTY ADVISOR') {
         field='FACULTY ADVISOR APPROVAL';
+        notificationStaffID=studentLeaveDetails['YEAR COORDINATOR STAFF ID'];
+        notificationReference=FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/${studentLeaveDetails['BRANCH']}/$notificationStaffID');
+        print('FA not: ${notificationReference.toString()}');
       } else if(privilege=='YEAR COORDINATOR' || privilege=='HOD'){
+
         field='YEAR COORDINATOR APPROVAL';
+        notificationStaffID=studentLeaveDetails['HOSTEL WARDEN STAFF ID'];
+        notificationReference=FirebaseFirestore.instance.doc('KLU/HOSTELWARDENDETAILS/$hostelName/$notificationStaffID');
+
       } else if(privilege=='FACULTY ADVISOR AND YEAR COORDINATOR'){
         if(widget.type=='SECTION'){
+
+          privilege='FACULTY ADVISOR';
           field='FACULTY ADVISOR APPROVAL';
+          notificationStaffID=studentLeaveDetails['YEAR COORDINATOR STAFF ID'];
+          notificationReference=FirebaseFirestore.instance.doc('KLU/STAFFDETAILS/${studentLeaveDetails['BRANCH']}/$notificationStaffID');
+
         } else if(widget.type=='YEAR COORDINATOR'){
+
+          privilege='YEAR COORDINATOR';
+          notificationStaffID=studentLeaveDetails['HOSTEL WARDEN STAFF ID'];
+          notificationReference=FirebaseFirestore.instance.doc('KLU/HOSTELWARDENDETAILS/$hostelName/$notificationStaffID');
           field='YEAR COORDINATOR APPROVAL';
+
         }
       } else if(privilege=='HOSTEL WARDEN'){
         field='HOSTEL WARDEN APPROVAL';
@@ -326,13 +353,11 @@ class _LeaveDataState extends State<LeaveDetailsView> {
 
       Map<String, dynamic> data={};
 
-      print('Getting document reference field value...');
-      List<String> listData=[widget.leaveid];
-      Map<String,dynamic>? values = await firebaseService.getValuesFromDocRef(collectionReference.doc('PENDING'), listData,utils.getEmail());
-      value=values![widget.leaveid];
+      value=FirebaseFirestore.instance.doc('KLU/STUDENTDETAILS/${studentLeaveDetails['YEAR']}/${studentLeaveDetails['REGISTRATION NUMBER']}');
+
 
       data.clear();
-      data.addAll({widget.leaveid:value});
+      data.addAll({widget.leaveid:value.path});
       print('Storing document reference...');
       await firebaseService.uploadMapDetailsToDoc(collectionReference.doc('REJECTED'), data,staffID!,utils.getEmail());
 
@@ -341,8 +366,11 @@ class _LeaveDataState extends State<LeaveDetailsView> {
       data.clear();
       data = {field: 'REJECTED', 'VERIFICATION STATUS': 'REJECTED','$staffID TIMESTAMP': utils.getCurrentTimeStamp()};
       print('Uploading map details to doc...');
-      DocumentReference valueRef=FirebaseFirestore.instance.doc(value);
+      DocumentReference valueRef=FirebaseFirestore.instance.doc(value.path);
       await firebaseService.uploadMapDetailsToDoc(valueRef.collection('LEAVEFORMS').doc(widget.leaveid), data, staffID!, '${studentLeaveDetails['REGISTRATION NUMBER']}@klu.ac.in');
+
+      sendPushMessage(recipientToken: studentLeaveDetails['FCMTOKEN'], title: 'Leave Applications', body: '${widget.leaveid} $privilege DECLINED', additionalData: {});
+
       Navigator.pop(context);
       // Stop the loading dialog before navigating back
       EasyLoading.dismiss();

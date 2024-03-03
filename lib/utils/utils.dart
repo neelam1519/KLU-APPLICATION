@@ -111,10 +111,7 @@ class Utils {
   }
 
   bool isValidMobileNumber(String mobileNumber) {
-    // Define a simple regex pattern for a 10-digit mobile number
     final RegExp mobileRegex = RegExp(r'^[0-9]{10}$');
-
-    // Use the regex pattern to check if the mobile number is valid
     return mobileRegex.hasMatch(mobileNumber);
   }
   bool doesContainEmoji(String input) {
