@@ -14,7 +14,6 @@ import 'package:klu_flutter/leaveapply/studentformsview.dart';
 import 'package:klu_flutter/main.dart';
 import 'package:klu_flutter/review.dart';
 import 'package:klu_flutter/security/EncryptionService.dart';
-import 'package:klu_flutter/services/sendnotification.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
@@ -25,7 +24,6 @@ class Home extends StatefulWidget {
   @override
   _HomeState createState() => _HomeState();
 }
-
 
 class _HomeState extends State<Home> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -95,32 +93,43 @@ class _HomeState extends State<Home> {
           ),
           body: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
+            child: Row(
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 30.0), // Adjust the value according to your needs
-                  child: Row(
+                SizedBox(width: 30),
+                Align(
+                  alignment: Alignment.center,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              InkWell(
-                                onTap: () async {
-                                  leaveFormClicked();
-                                },
-                                child: Image.asset('assets/images/leaveicon.png', width: 130, height: 120, fit: BoxFit.cover),
-                              ),
-                              SizedBox(height: 8),
-                              Text(leaveForm),
-                            ],
-                          ),
-                        ),
+                      InkWell(
+                        onTap: () async {
+                          leaveFormClicked();
+                        },
+                        child: Image.asset('assets/images/leaveicon.png', width: 130, height: 120, fit: BoxFit.cover),
                       ),
+                      SizedBox(height: 8),
+                      Text(leaveForm),
                     ],
                   ),
+                ),
+                SizedBox(width: 40),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        // Handle onTap for the additional image
+
+                      },
+                      child: Column(
+                        children: [
+                          Image.asset('assets/images/materials.png', width: 130, height: 120, fit: BoxFit.cover),
+                          SizedBox(height: 8),
+                          Text('Materials'), // Text below the image
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -202,7 +211,6 @@ class _HomeState extends State<Home> {
     utils.showDefaultLoading();
     try {
       DocumentReference detailsRef = FirebaseFirestore.instance.doc('KLU/ERROR DETAILS');
-      utils.showToastMessage('PRIVILEGE: $privilege', context);
       if (privilege == 'STUDENT') {
         regNo = await sharedPreferences.getSecurePrefsValue('REGISTRATION NUMBER');
         year = await utils.getYearFromRegNo(regNo!);

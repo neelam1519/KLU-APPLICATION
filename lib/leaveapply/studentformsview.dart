@@ -56,7 +56,7 @@ class _StudentsLeaveFormsViewState extends State<StudentsLeaveFormsView> {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             EasyLoading.dismiss();
-            return Center(child: Text('No Leave Data Available'));
+            return Center(child: Text('Apply your first leave by pressing + button below'));
           } else {
             List<DocumentSnapshot> leaveForms = snapshot.data!.docs;
             return ListView.builder(

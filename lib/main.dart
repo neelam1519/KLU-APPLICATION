@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,9 +8,9 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:klu_flutter/firebase_options.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:klu_flutter/provider.dart';
-import 'package:klu_flutter/security/EncryptionService.dart';
 import 'package:klu_flutter/services/pushnotificationservice.dart';
 import 'package:klu_flutter/utils/Firebase.dart';
+import 'package:klu_flutter/utils/loadingdialog.dart';
 import 'package:klu_flutter/utils/readers.dart';
 import 'package:klu_flutter/utils/shraredprefs.dart';
 import 'package:klu_flutter/utils/utils.dart';
@@ -180,7 +179,8 @@ class MyHomePage extends StatelessWidget {
 
   Future<void> _signInWithGoogle(BuildContext context) async {
     Utils utils=Utils();
-    utils.showDefaultLoading();
+    LoadingDialog loadingDialog=LoadingDialog();
+    loadingDialog.showDefaultLoading('Getting details please wait');
     try {
       final GoogleSignInAccount? googleSignInAccount = await GoogleSignIn().signIn();
       final GoogleSignInAuthentication googleSignInAuthentication =
@@ -212,7 +212,6 @@ class MyHomePage extends StatelessWidget {
 
           FirebaseService firebaseService = FirebaseService();
           SharedPreferences sharedPreferences=SharedPreferences();
-          EncryptionService encryptionService=EncryptionService();
           Reader reader=Reader();
 
           await utils.getImageBytesFromUrl(imageUrl);
@@ -231,8 +230,9 @@ class MyHomePage extends StatelessWidget {
               Map<String, dynamic> studentFileDetails = await reader.downloadedDetail(studentPathFileName, '$year $branch STUDENT DETAILS', data);
 
               if (studentFileDetails.isEmpty) {
-                signOutUser();
+                utils.clearTemporaryDirectory();
                 utils.showToastMessage('STUDENT DETAILS NOT FOUND', context);
+                signOutUser();
               }
 
               String faPathFileName = Uri.encodeComponent('$year/$branch/$year $branch FA DETAILS');
@@ -241,9 +241,9 @@ class MyHomePage extends StatelessWidget {
               Map<String, dynamic> faDetails = await reader.downloadedDetail(faPathFileName, '$year $branch FA DETAILS', data);
 
               if (faDetails.isEmpty) {
+                utils.clearTemporaryDirectory();
+                utils.showToastMessage('FACULTY ADVISOR DETAILS NOT FOUND', context);
                 signOutUser();
-                utils.showToastMessage(
-                    'FACULTY ADVISOR DETAILS NOT FOUND', context);
               }
 
               String adminPathFileName = Uri.encodeComponent('$year/$branch/$year $branch ADMINS DETAILS');
@@ -256,8 +256,9 @@ class MyHomePage extends StatelessWidget {
               Map<String, dynamic> adminDetails = await reader.downloadedDetail(adminPathFileName, '$year $branch ADMIN DETAILS', data);
 
               if (adminDetails.isEmpty) {
-                signOutUser();
+                utils.clearTemporaryDirectory();
                 utils.showToastMessage('YEAR COORDINATOR DETAILS NOT FOUND', context);
+                signOutUser();
               }
 
               Map<String, dynamic> studentTotalDetails = {};
@@ -282,7 +283,7 @@ class MyHomePage extends StatelessWidget {
 
             }catch(e){
               signOutUser();
-              utils.showToastMessage('ERROR OCCURRED WHILE UPLOADING THE DATA', context);
+              utils.showToastMessage('YOUR DETAILS NOT FOUND', context);
             }
 
           }else if(lecturerOrStudent=='STAFF') {
@@ -391,20 +392,25 @@ class MyHomePage extends StatelessWidget {
               }
             }catch(e){
               print("Error: $e");
+              utils.clearTemporaryDirectory();
               utils.showToastMessage('DETAILS NOT FOUND CONTACT ADMINISTRATOR', context);
               signOutUser();
             }
 
           }
         }else{
+          utils.clearTemporaryDirectory();
           utils.showToastMessage('LOGIN WITH UNIVERSITY MAIL ID ONLY', context);
           signOutUser();
         }
       }
     } catch (error) {
+      utils.clearTemporaryDirectory();
       utils.showToastMessage('Error occurred during login', context);
       signOutUser();
     }
+
+    utils.clearTemporaryDirectory();
   }
 
   void signOutUser(){
